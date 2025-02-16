@@ -16,27 +16,15 @@ def output(results):
     for var, val, unit in results:
         print(f'| {var:>13} | {round(val, 3):>10} | {unit:>10} |')
 
-def make_plot(x, y, xlabel, ylabel, title, i):
-    plt.rcParams.update({'font.size': 8})
-    plt.figure(figsize=(4,3))
-    # plt.subplot(1, 2, i) # plot two plots on the same line
-    plt.plot(x, y, linewidth=0.4)
-    plt.xlabel(xlabel)
-    plt.ylabel(ylabel)
-    plt.title(title)
-    plt.grid()
-    if i == 2:
-        plt.show()
-
 """
 1. Aircraft Flight Condition
 """
 ht_ft = 6000 # Altitude (ft) from case study
 ht = ht_ft * 0.3048 # Altitude (m)
 m = 6.126 # Aircraft Dry Mass + Payload Mass (kg) exp
-m_max = 10 # Maximum Take-Off Weight (kg) from datasheet
+mtow = 10 # Maximum Take-Off Weight (kg) from datasheet
 h = (0.085 + 0.095) / 2 # CG Position (m from root leading edge) from datasheet page
-gamma_e_deg = 0 # Flight Path Angle (deg)
+gamma_e_deg = 0 # Flight Path Angle (deg) MIGHT CHANGE
 gamma_e = gamma_e_deg / 57.3 # Flight Path Angle (rad)
 g = 9.81 # Gravity Constant (ms^-2)
 
@@ -70,25 +58,26 @@ output(results1)
 4. Aircraft Geometry
 """
 # Wing Geometry
-b = (3.01 + 2.96) / 2 # Wing Span (m) exp
+b = (3.01 + 2.96) / 2 # Wing Span (m) exp averaged
 c_tip = 0.13 # Tip Chord Length (m) exp
-c_root = 0.29 # Rood Chord Length (m) exp
-h = h / c_root # CG Position (% of root chord) from datasheet page ASK
+c_root = 0.29 # Root Chord Length (m) exp
+h = h / c_root # CG Position (% of root chord) from datasheet
 c_w = (((c_tip + c_root) / 2) + 0.223) / 2 # Wing Mean Aerodynamic Chord (m) exp derived averaged
 S = b * c_w # Wing Area (m^2) exp derived
-Ar = b ** 2 / S # exp derived
+Ar = b**2 / S # exp derived
 lambda_ = 0 # Quarter Chord Sweep (deg) exp
 z_w = 0 # Z-Coordinate of Quarter Chord (m) exp
 alpha_w_r_deg = (11.539 + 9.46) / 2 # Wing Rigging Angle (deg) exp averaged
 alpha_w_r = alpha_w_r_deg / 57.3 # Wing Rigging Angle (rad)
 
 # Tailplane Geometry
-s_T = 0.38 # Tailplane Semi-Span (m) exp
+s_T = (0.38 + (0.63 / 2)) / 2 # Tailplane Semi-Span (m) exp averaged
 tau_T_deg = 36.1 # Tailplane Dihedral (deg) exp
 c_MAC_T = 0.14 # Tailplane Mean Aerodynamic Chord (m) exp
-b_T = (0.63 + 2 * s_T * np.cos(np.radians(tau_T_deg))) / 2 # Tailplane Span (m) exp averaged
-S_T = c_MAC_T * b_T # Tailplane Area (m^2)
-l_t = 1.04 # Tail Arm Quarter Chord Wing to Quarter Chord Tail (m) exp
+b_T = 2 * s_T * np.cos(np.radians(tau_T_deg)) # Tailplane Span (m) exp derived
+S_T = (0.11424 + (c_MAC_T * b_T)) / 2 # Tailplane Area (m^2) exp derived averaged
+Ar_T = (3.47 + (b_T**2 / S_T)) / 2 # Tailplane Aspect Ratio exp derived averaged
+l_t = 1.04 # Tail Arm, Quarter Chord Wing to Quarter Chord Tail (m) exp
 z_T = -0.35 # Quarter Chord Z-Coordinate (m) exp
 eta_T_deg = 0 # Tailplane Setting Angle (deg) exp
 eta_T = eta_T_deg / 57.3 # Tailplane Setting Angle (rad)
@@ -102,20 +91,20 @@ kappa = kappa_deg / 57.3 # Engine Thrust Line Angle (rad)
 """
 5. Wing-Body Aerodynamics
 """
-a = 5.19 # Wing-body CL-alpha (rad^-1)
-C_L_max = 1.52 # Maximum Lift Coefficient
-C_m_0 = -0.05 # Zero Lift Pitching Moment Coefficient
-C_D0 = 0.041 # Zero Lift Drag Coefficient
-alpha_w0_deg = -2.5 # Zero Lift Angle of Attack (deg)
+a = 2 * np.pi * Ar / (2 + Ar) # Wing-body CL-alpha (rad^-1) aero notes
+C_L_max = 1.27 # Maximum Lift Coefficient initial guess +- 10%
+C_m_0 = -0.05 # Zero Lift Pitching Moment Coefficient initial guess
+C_D0 = 0.032 # Zero Lift Drag Coefficient initial guess
+alpha_w0_deg = -2 # Zero Lift Angle of Attack (deg) initial guess
 alpha_w0 = alpha_w0_deg / 57.3 # Zero Lift Angle of Attack (rad)
-h_0 = 0.25 # Wing-Body Aero Centre
+h_0 = 0.25 # Wing-Body Aero Centre initial guess
 
 """
 6. Tailplane Aerodynamics
 """
-a1 = 3.2 # Tail plane CL-alpha (rad^-1)
-a2 = 2.414 # Elevator CL-eta (rad^-1)
-epsilon_0_deg = 2 # Zero Lift Downwash Angle (deg)
+a1 = 2 * np.pi * Ar_T / (2 + Ar_T) # Tail plane CL-alpha (rad^-1) aero notes
+a2 = 0.26 * a1 # Elevator CL-eta (rad^-1) aero notes
+epsilon_0_deg = 2 # Zero Lift Downwash Angle (deg) aero notes
 epsilon_0 = epsilon_0_deg / 57.3 # Zero Lift Downwash Angle (rad)
 
 """
@@ -174,7 +163,10 @@ C = F_d / b
 S_d = (0.9998 + (0.0421 * C)) - (2.6286 * C**2) + (2 * C**3) # Fuselage drag factor
 k_D = (-3.333 * 10**(-4) * lambda_**2) + (6.667 * 10**(-5) * lambda_) + 0.38 # Empirical Constant
 e = 1 / (np.pi * Ar * k_D * C_D0 + (1 / (0.99 * S_d))) # Oswald Efficiency Factor
-K = 1 / (np.pi * Ar * e)
+# verified reasonable 'e' value with Fundamentals of Flight 2nd edition, page 187
+# tailplane contribution is not considered?
+
+K = 1 / (np.pi * Ar * (e))
 
 """
 Check Results 4
@@ -199,18 +191,20 @@ V_stall_eas = V_stall * np.sqrt(sigma) # Equivalent Stall Speed (knots)
 h_n = h_0 + V_T * (a1 / a) * (1 - d_epsilon_alpha) # Neutral Points - controls fixed
 K_n = h_n - h # Static Margin - controls fixed
 
-V_max_km_hr = 129 # Maximum Airspeed (kmhr^-1)
+V_max_km_hr = 129 # Maximum Airspeed (kmhr^-1) from datasheet
 V_max_knots = V_max_km_hr / 3.6 / 0.515 # Maximum Airspeed (knots)
 V_max_i = V_max_knots * 0.515 # Maximum Airspeed (ms^-1)
-interval = (V_max_knots - V_stall_eas) / 11
 
 V_knots = [] # True Airspeed (knots)
 V_i = [] # True Airspeed (ms^-1)
 V_eas = [] # Equivalent Airspeed (knots)
-for i in range(0, 15):
-    V_knots.append(V_stall * 0.8 + (interval * i))
-    V_i.append(V_knots[i] * 0.515)
-    V_eas.append(V_knots[i] * np.sqrt(sigma))
+array_min = 0.9 * V_stall
+array_max = 1.1 * V_max_knots
+intervals = 50
+
+V_knots = np.linspace(array_min, array_max, intervals)
+V_i = V_knots * 0.515
+V_eas = V_knots * np.sqrt(sigma)
 
 """
 11. Trim Calculation
@@ -225,7 +219,7 @@ def equations(vars): # Defining the system of equations
     eq4 = - C_LW + a * (alpha_e + alpha_w_r - alpha_w0)
     eq5 = C_m_0 + (h - h_0) * C_LW - V_T * C_LT + C_tau * z_tau / c_w
     eq6 = - C_LT + (C_L - C_LW) * S / S_T
-    return [eq1,eq2,eq3,eq4,eq5,eq6]
+    return [eq1, eq2, eq3, eq4, eq5, eq6]
 
 initial_guesses = [0.7, 0.5, 0.02, 0.4, 0.1, 0.1]
 
@@ -295,21 +289,21 @@ output(results_flight_condition)
 16. Trim Conditions as a Function of Aircraft Velocity
 """
 results_trim_conditions = [
-    ('V_i', V_i[4], 'knots'), 
-    ('C_L_i', C_L_i[4], '-'), 
-    ('C_D_i', C_D_i[4], '-'),
-    ('C_LW_i', C_LW_i[4], '-'), 
-    ('C_LT_i', C_LT_i[4], '-'), 
-    ('LD_i', LD_i[4], '-'), 
-    ('C_tau_i', C_tau_i[4], '-'), 
-    ('alpha_w_i', alpha_w_i[4], 'deg'), 
-    ('alpha_e_i', alpha_e_i[4], 'deg'), 
-    ('theta_e_i', theta_e_i[4], 'deg'), 
-    ('alpha_T_i', alpha_T_i[4], 'deg'), 
-    ('eta_e_i', eta_e_i[4], 'deg'), 
-    ('L_i', L_i[4], 'N'), 
-    ('D_i', D_i[4], 'N'), 
-    ('T_i', T_i[4], 'N')
+    ('V_i', V_i[14], 'knots'), 
+    ('C_L_i', C_L_i[14], '-'), 
+    ('C_D_i', C_D_i[14], '-'),
+    ('C_LW_i', C_LW_i[14], '-'), 
+    ('C_LT_i', C_LT_i[14], '-'), 
+    ('LD_i', LD_i[14], '-'), 
+    ('C_tau_i', C_tau_i[14], '-'), 
+    ('alpha_w_i', alpha_w_i[14], 'deg'), 
+    ('alpha_e_i', alpha_e_i[14], 'deg'), 
+    ('theta_e_i', theta_e_i[14], 'deg'), 
+    ('alpha_T_i', alpha_T_i[14], 'deg'), 
+    ('eta_e_i', eta_e_i[14], 'deg'), 
+    ('L_i', L_i[14], 'N'), 
+    ('D_i', D_i[14], 'N'), 
+    ('T_i', T_i[14], 'N')
 ]
 
 print('==Trim=Conditions==Demo=Values=============')
@@ -320,51 +314,47 @@ output(results_trim_conditions)
 """
 plt.rcParams.update({'font.size': 8})
 plt.figure(figsize=(4,3))
-plt.plot(V_knots, LD_i, linewidth=0.8)
-plt.axvline(x=V_stall, color='r', 
-            label='V_Stall', linestyle='--', linewidth=0.5)
-plt.text(V_stall, max(LD_i) * 0.9, 'Stall Velocity', color='r', 
-         rotation=0, ha='center', va='bottom', fontsize=8)
+plt.title('Velocity vs Lift to Drag Ratio')
 plt.xlabel('Velocity (knots)')
 plt.ylabel('Lift to Drag Ratio (-)')
-plt.title('Velocity vs Lift to Drag Ratio')
+plt.plot(V_knots, LD_i, linewidth=1.5)
+plt.axvline(x=V_stall, color='r', label='V_Stall', linestyle='--', linewidth=0.8)
+plt.axvline(x=V_max_knots, color='g', label='V_Max', linestyle='--', linewidth=0.8)
+plt.axvline(x=V_md, color='b', label='Min Drag', linestyle='--', linewidth=0.8)
 plt.grid()
+plt.legend(fontsize='small')
 
 plt.figure(figsize=(4,3))
-plt.plot(V_knots, eta_e_i, linewidth=0.8)
-plt.axvline(x=V_stall, color='r', 
-            label='V_Stall', linestyle='--', linewidth=0.5)
-plt.text(V_stall, max(eta_e_i) * 0.9, 'Stall Velocity', color='r', 
-         rotation=0, ha='center', va='bottom', fontsize=8)
+plt.title('Velocity vs Elevator Angle')
 plt.xlabel('Velocity (knots)')
 plt.ylabel('Elevator Angle (deg)')
-plt.title('Velocity vs Elevator Angle')
+plt.plot(V_knots, eta_e_i, linewidth=1.5)
+plt.axvline(x=V_stall, color='r', label='V_Stall', linestyle='--', linewidth=0.8)
+plt.axvline(x=V_max_knots, color='g', label='V_Max', linestyle='--', linewidth=0.8)
+plt.axvline(x=V_md, color='b', label='Min Drag', linestyle='--', linewidth=0.8)
 plt.grid()
+plt.legend(fontsize='small')
 
 plt.figure(figsize=(4,3))
-plt.plot(V_knots, D_i, linewidth=0.8)
-plt.axvline(x=V_stall, color='r', 
-            label='V_Stall', linestyle='--', linewidth=0.5)
-plt.text(V_stall, max(D_i) * 0.9, 'Stall Velocity', color='r', 
-         rotation=0, ha='center', va='bottom', fontsize=8)
+plt.title('Velocity vs Total Drag')
 plt.xlabel('Velocity (knots)')
 plt.ylabel('Total Drag (N)')
-plt.title('Velocity vs Total Drag')
+plt.plot(V_knots, D_i, linewidth=1.5)
+plt.axvline(x=V_stall, color='r', label='V_Stall', linestyle='--', linewidth=0.8)
+plt.axvline(x=V_max_knots, color='g', label='V_Max', linestyle='--', linewidth=0.8)
+plt.axvline(x=V_md, color='b', label='Min Drag', linestyle='--', linewidth=0.8)
 plt.grid()
+plt.legend(fontsize='small')
 
 plt.figure(figsize=(4,3))
-plt.plot(C_D_i, C_L_i, linewidth=0.8)
+plt.title('Drag Polar')
 plt.xlabel('Drag Coefficient')
 plt.ylabel('Lift Coefficient')
-plt.title('Drag Polar')
+plt.plot(C_D_i, C_L_i, linewidth=1.5)
+plt.errorbar(x=[min(C_D_i), max(C_D_i)], y=[C_L_max, C_L_max], yerr=0.1*C_L_max, 
+             color='r', label='Max CL ± 10%', linestyle='--', linewidth=0.8, capsize=3)
 plt.grid()
-
-# =============================================================================
-# make_plot(V_knots, LD_i, 'Velocity (knots)', 'Lift to Drag Ratio (-)', 'Velocity vs Lift to Drag Ratio', 1)
-# make_plot(V_knots, eta_e_i, 'Velocity (knots)', 'Elevator Angle (deg)', 'Velocity vs Elevator Angle', 2)
-# make_plot(V_knots, D_i, 'Velocity (knots)', 'Total Drag (N)', 'Velocity vs Total Drag', 1)
-# make_plot(C_D_i, C_L_i, 'Drag Coefficient', 'Lift Coefficient', 'Drag Polar', 2)
-# =============================================================================
+plt.legend(fontsize='small')
 
 """
 References
