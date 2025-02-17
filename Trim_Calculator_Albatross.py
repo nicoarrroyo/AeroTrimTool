@@ -23,7 +23,8 @@ ht_ft = 6000 # Altitude (ft) from case study
 ht = ht_ft * 0.3048 # Altitude (m)
 m = 6.126 # Aircraft Dry Mass + Payload Mass (kg) exp
 mtow = 10 # Maximum Take-Off Weight (kg) from datasheet
-h = np.linspace(0.06, 0.1) # CG Position from root leading edge (m) from datasheet page
+h_low = 0.6 # Lowest CG Position from root leading edge (m) from datasheet page
+h_high = 1.05 # Highest CG Position from root leading edge (m) from datasheet page
 gamma_e_deg = 0 # Flight Path Angle (deg) MIGHT CHANGE
 gamma_e = gamma_e_deg / 57.3 # Flight Path Angle (rad)
 g = 9.81 # Gravity Constant (ms^-2)
@@ -50,7 +51,9 @@ sigma = rho / 1.225 # Density ratio
 b = (3.01 + 2.96) / 2 # Wing Span (m) exp averaged
 c_tip = 0.13 # Tip Chord Length (m) exp
 c_root = 0.29 # Root Chord Length (m) exp
-h = h / c_root # CG Position (% of root chord) from datasheet
+h_high = h_high / c_root # CG Position (% of root chord) from datasheet
+h_low = h_low / c_root # CG Position (% of root chord) from datasheet
+h = 2
 c_w = (((c_tip + c_root) / 2) + 0.223) / 2 # Wing Mean Aerodynamic Chord (m) exp derived averaged
 S = b * c_w # Wing Area (m^2) exp derived
 Ar = b**2 / S # exp derived
@@ -156,7 +159,6 @@ K_n = h_n - h # Static Margin - controls fixed
 max_thrust = 30 # Maximum Thrust from Llanbedr (N)
 # at trim, thrust = drag
 
-
 V_max_km_hr = 129 # Maximum Airspeed (kmhr^-1) from datasheet
 V_max_knots = V_max_km_hr / 3.6 / 0.515 # Maximum Airspeed (knots)
 V_max_i = V_max_knots * 0.515 # Maximum Airspeed (ms^-1)
@@ -174,7 +176,7 @@ V_eas = V_knots * np.sqrt(sigma)
 """
 11. Trim Calculation
 """
-def equations(vars): # Defining the system of equations
+def equations_low(vars): # Defining the system of equations
     C_L, C_LW, C_D, C_tau, alpha_e, C_LT = vars  # Unpack variables
     eq1 = 2 * m * g / (rho * vel**2 * S) * np.cos(alpha_e + gamma_e) - \
         (C_L * np.cos(alpha_e) + C_D * np.sin(alpha_e) + C_tau * np.sin(kappa))
@@ -182,7 +184,18 @@ def equations(vars): # Defining the system of equations
         (C_tau * np.cos(kappa) - C_D * np.cos(alpha_e) + C_L * np.sin(alpha_e))
     eq3 = - C_D + C_D0 + K * C_L**2
     eq4 = - C_LW + a * (alpha_e + alpha_w_r - alpha_w0)
-    eq5 = C_m_0 + (h - h_0) * C_LW - V_T * C_LT + C_tau * z_tau / c_w
+    eq5 = C_m_0 + (h_low - h_0) * C_LW - V_T * C_LT + C_tau * z_tau / c_w
+    eq6 = - C_LT + (C_L - C_LW) * S / S_T
+    return [eq1, eq2, eq3, eq4, eq5, eq6]
+def equations_high(vars): # Defining the system of equations
+    C_L, C_LW, C_D, C_tau, alpha_e, C_LT = vars  # Unpack variables
+    eq1 = 2 * m * g / (rho * vel**2 * S) * np.cos(alpha_e + gamma_e) - \
+        (C_L * np.cos(alpha_e) + C_D * np.sin(alpha_e) + C_tau * np.sin(kappa))
+    eq2 = 2 * m * g / (rho * vel**2 * S) * np.sin(alpha_e + gamma_e) - \
+        (C_tau * np.cos(kappa) - C_D * np.cos(alpha_e) + C_L * np.sin(alpha_e))
+    eq3 = - C_D + C_D0 + K * C_L**2
+    eq4 = - C_LW + a * (alpha_e + alpha_w_r - alpha_w0)
+    eq5 = C_m_0 + (h_high - h_0) * C_LW - V_T * C_LT + C_tau * z_tau / c_w
     eq6 = - C_LT + (C_L - C_LW) * S / S_T
     return [eq1, eq2, eq3, eq4, eq5, eq6]
 
@@ -191,46 +204,75 @@ initial_guesses = [0.7, 0.5, 0.02, 0.4, 0.1, 0.1]
 """
 12. Trim Variables Calculation
 """
-C_L_i = np.zeros(shape=len(V_i))
-C_LW_i = np.zeros(shape=len(V_i))
-C_D_i = np.zeros(shape=len(V_i))
-C_tau_i = np.zeros(shape=len(V_i))
-alpha_e_i = np.zeros(shape=len(V_i))
-C_LT_i = np.zeros(shape=len(V_i))
+C_L_i_low = np.zeros(shape=len(V_i))
+C_LW_i_low = np.zeros(shape=len(V_i))
+C_D_i_low = np.zeros(shape=len(V_i))
+C_tau_i_low = np.zeros(shape=len(V_i))
+alpha_e_i_low = np.zeros(shape=len(V_i))
+C_LT_i_low = np.zeros(shape=len(V_i))
+C_L_i_high = np.zeros(shape=len(V_i))
+C_LW_i_high = np.zeros(shape=len(V_i))
+C_D_i_high = np.zeros(shape=len(V_i))
+C_tau_i_high = np.zeros(shape=len(V_i))
+alpha_e_i_high = np.zeros(shape=len(V_i))
+C_LT_i_high = np.zeros(shape=len(V_i))
 
 for i in range(0, len(V_i)):
     vel = V_i[i]
-    solution, info, ier, msg = fsolve(equations, initial_guesses, full_output=True)
-    C_L_i[i], C_LW_i[i], C_D_i[i], C_tau_i[i], alpha_e_i[i], C_LT_i[i] = solution
+    solution_low, info_low, ier_low, msg_low = fsolve(equations_low, initial_guesses, full_output=True)
+    solution_high, info_high, ier_high, msg_high = fsolve(equations_high, initial_guesses, full_output=True)
+    C_L_i_low[i], C_LW_i_low[i], C_D_i_low[i], C_tau_i_low[i], alpha_e_i_low[i], C_LT_i_low[i] = solution_low
+    C_L_i_high[i], C_LW_i_high[i], C_D_i_high[i], C_tau_i_high[i], alpha_e_i_high[i], C_LT_i_high[i] = solution_high
 
-alpha_w_i = alpha_e_i + alpha_w_r # Wing Incidence (rad)
-eta_e_i = C_LT_i / a2 - a1 / a2 * (alpha_w_i * (1 - d_epsilon_alpha) + eta_T - alpha_w_r - epsilon_0) # Trim Elevator Angle (rad)
-theta_e_i = gamma_e + alpha_w_i - alpha_w_r # Pitch Attitude (rad)
-alpha_T_i = alpha_w_i * (1 - d_epsilon_alpha) + eta_T - epsilon_0 - alpha_w_r # Tail Angle of Attach (rad)
-LD_i = C_LW_i / C_D_i # Lift to Drag Ratio
+alpha_w_i_low = alpha_e_i_low + alpha_w_r # Wing Incidence (rad)
+eta_e_i_low = C_LT_i_low / a2 - a1 / a2 * (alpha_w_i_low * (1 - d_epsilon_alpha) + eta_T - alpha_w_r - epsilon_0) # Trim Elevator Angle (rad)
+theta_e_i_low = gamma_e + alpha_w_i_low - alpha_w_r # Pitch Attitude (rad)
+alpha_T_i_low = alpha_w_i_low * (1 - d_epsilon_alpha) + eta_T - epsilon_0 - alpha_w_r # Tail Angle of Attack (rad)
+LD_i_low = C_LW_i_low / C_D_i_low # Lift to Drag Ratio
+
+alpha_w_i_high = alpha_e_i_high + alpha_w_r # Wing Incidence (rad)
+eta_e_i_high = C_LT_i_high / a2 - a1 / a2 * (alpha_w_i_high * (1 - d_epsilon_alpha) + eta_T - alpha_w_r - epsilon_0) # Trim Elevator Angle (rad)
+theta_e_i_high = gamma_e + alpha_w_i_high - alpha_w_r # Pitch Attitude (rad)
+alpha_T_i_high = alpha_w_i_high * (1 - d_epsilon_alpha) + eta_T - epsilon_0 - alpha_w_r # Tail Angle of Attack (rad)
+LD_i_high = C_LW_i_high / C_D_i_high # Lift to Drag Ratio
 
 """
 13. Conversions of Angles to Degrees
 """
-alpha_w_i = alpha_w_i * 57.3
-alpha_e_i = alpha_e_i * 57.3
-theta_e_i = theta_e_i * 57.3
-alpha_T_i = alpha_T_i * 57.3
-eta_e_i = eta_e_i * 57.3
+# Convert to degrees for low values
+alpha_w_i_low = alpha_w_i_low * 57.3
+alpha_e_i_low = alpha_e_i_low * 57.3
+theta_e_i_low = theta_e_i_low * 57.3
+alpha_T_i_low = alpha_T_i_low * 57.3
+eta_e_i_low = eta_e_i_low * 57.3
+gamma_e = gamma_e * 57.3
+
+# Convert to degrees for high values
+alpha_w_i_high = alpha_w_i_high * 57.3
+alpha_e_i_high = alpha_e_i_high * 57.3
+theta_e_i_high = theta_e_i_high * 57.3
+alpha_T_i_high = alpha_T_i_high * 57.3
+eta_e_i_high = eta_e_i_high * 57.3
 gamma_e = gamma_e * 57.3
 
 """
 14. Total Trim Forces Acting on Aircraft
 """
-L_i = []
-D_i = []
-T_i = []
+L_i_low = []
+D_i_low = []
+T_i_low = []
+L_i_high = []
+D_i_high = []
+T_i_high = []
 
 for i in range(0, len(V_i)):
     vel = V_i[i]
-    L_i.append(0.5 * rho * vel**2 * S * C_L_i[i]) # Total Lift Force (N)
-    D_i.append(0.5 * rho * vel**2 * S * C_D_i[i]) # Total Lift Force (N)
-    T_i.append(0.5 * rho * vel**2 * S * C_tau_i[i]) # Total Lift Force (N)
+    L_i_low.append(0.5 * rho * vel**2 * S * C_L_i_low[i]) # Total Lift Force (N)
+    D_i_low.append(0.5 * rho * vel**2 * S * C_D_i_low[i]) # Total Lift Force (N)
+    T_i_low.append(0.5 * rho * vel**2 * S * C_tau_i_low[i]) # Total Lift Force (N)
+    L_i_high.append(0.5 * rho * vel**2 * S * C_L_i_high[i]) # Total Lift Force (N)
+    D_i_high.append(0.5 * rho * vel**2 * S * C_D_i_high[i]) # Total Drag Force (N)
+    T_i_high.append(0.5 * rho * vel**2 * S * C_tau_i_high[i]) # Total Thrust Force (N)
 
 """
 15. Definition of Flight Condition
@@ -248,7 +290,8 @@ plt.figure(figsize=(4,3))
 plt.title('Lift to Drag Ratio vs True Air Speed')
 plt.xlabel('Velocity (knots)')
 plt.ylabel('Lift to Drag Ratio (-)')
-plt.plot(V_knots, LD_i, linewidth=1.5)
+plt.plot(V_knots, LD_i_low, linewidth=1.5)
+plt.plot(V_knots, LD_i_high, linewidth=1.5)
 plt.axvline(x=V_stall, color='r', label='V_Stall', linestyle='--', linewidth=0.8)
 plt.axvline(x=V_max_knots, color='g', label='V_Max', linestyle='--', linewidth=0.8)
 plt.axvline(x=V_md, color='b', label='Min Drag', linestyle='--', linewidth=0.8)
@@ -259,7 +302,8 @@ plt.figure(figsize=(4,3))
 plt.title('Elevator Angle vs True Air Speed')
 plt.xlabel('Velocity (knots)')
 plt.ylabel('Elevator Angle (deg)')
-plt.plot(V_knots, eta_e_i, linewidth=1.5)
+plt.plot(V_knots, eta_e_i_low, linewidth=1.5)
+plt.plot(V_knots, eta_e_i_high, linewidth=1.5)
 plt.axvline(x=V_stall, color='r', label='V_Stall', linestyle='--', linewidth=0.8)
 plt.axvline(x=V_max_knots, color='g', label='V_Max', linestyle='--', linewidth=0.8)
 plt.axvline(x=V_md, color='b', label='Min Drag', linestyle='--', linewidth=0.8)
@@ -270,7 +314,8 @@ plt.figure(figsize=(4,3))
 plt.title('Total Drag vs True Air Speed')
 plt.xlabel('Velocity (knots)')
 plt.ylabel('Total Drag (N)')
-plt.plot(V_knots, D_i, linewidth=1.5)
+plt.plot(V_knots, D_i_low, linewidth=1.5)
+plt.plot(V_knots, D_i_high, linewidth=1.5)
 plt.axvline(x=V_stall, color='r', label='V_Stall', linestyle='--', linewidth=0.8)
 plt.axvline(x=V_max_knots, color='g', label='V_Max', linestyle='--', linewidth=0.8)
 plt.axvline(x=V_md, color='b', label='Min Drag', linestyle='--', linewidth=0.8)
