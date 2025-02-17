@@ -23,8 +23,8 @@ ht_ft = 6000 # Altitude (ft) from case study
 ht = ht_ft * 0.3048 # Altitude (m)
 m = 6.126 # Aircraft Dry Mass + Payload Mass (kg) exp
 mtow = 10 # Maximum Take-Off Weight (kg) from datasheet
-h_low = 0.6 # Lowest CG Position from root leading edge (m) from datasheet page
-h_high = 1.05 # Highest CG Position from root leading edge (m) from datasheet page
+h_low = 0.07 # Lowest CG Position from root leading edge (m) from datasheet page
+h_high = 0.115 # Highest CG Position from root leading edge (m) from datasheet page
 gamma_e_deg = 0 # Flight Path Angle (deg) MIGHT CHANGE
 gamma_e = gamma_e_deg / 57.3 # Flight Path Angle (rad)
 g = 9.81 # Gravity Constant (ms^-2)
@@ -51,9 +51,9 @@ sigma = rho / 1.225 # Density ratio
 b = (3.01 + 2.96) / 2 # Wing Span (m) exp averaged
 c_tip = 0.13 # Tip Chord Length (m) exp
 c_root = 0.29 # Root Chord Length (m) exp
-h_high = h_high / c_root # CG Position (% of root chord) from datasheet
 h_low = h_low / c_root # CG Position (% of root chord) from datasheet
 c_w = (((c_tip + c_root) / 2) + 0.223) / 2 # Wing Mean Aerodynamic Chord (m) exp derived averaged
+h_high = h_high / c_w # CG Position (% of root chord) from datasheet
 S = b * c_w # Wing Area (m^2) exp derived
 Ar = b**2 / S # exp derived
 lambda_ = 0 # Wing Quarter Chord Sweep (deg) exp
@@ -72,7 +72,7 @@ l_t = 1.04 # Tail Arm, Quarter Chord Wing to Quarter Chord Tail (m) exp
 lambda_T_deg = 14.04 # Tailplane Sweep Angle (deg)
 lambda_T = lambda_T_deg / 57.3
 z_T = -0.35 # Quarter Chord Z-Coordinate (m) exp
-eta_T_deg = -2 # Tailplane Setting Angle (deg) exp
+eta_T_deg = 8 # Tailplane Setting Angle (deg) exp
 eta_T = eta_T_deg / 57.3 # Tailplane Setting Angle (rad)
 
 # General Geometry
@@ -86,7 +86,7 @@ kappa = kappa_deg / 57.3 # Engine Thrust Line Angle (rad)
 """
 a = 2 * np.pi * Ar / (2 + Ar) # Wing-body CL-alpha (rad^-1) aero notes
 C_L_max = 1.27 # Maximum Lift Coefficient 3rd year project +- 10%
-C_m_0 = -0.5 # Zero Lift Pitching Moment Coefficient 3rd year project
+C_m_0 = -0.05 # Zero Lift Pitching Moment Coefficient 3rd year project
 C_D0 = 0.032 # Zero Lift Drag Coefficient 3rd year project
 alpha_w0_deg = -2 # Zero Lift Angle of Attack (deg) 3rd year project
 alpha_w0 = alpha_w0_deg / 57.3 # Zero Lift Angle of Attack (rad)
@@ -310,6 +310,8 @@ plt.plot(V_knots, eta_e_i_high, linewidth=1.5)
 plt.axvline(x=V_stall, color='r', label='V_Stall', linestyle='--', linewidth=0.8)
 plt.axvline(x=V_max_knots, color='g', label='V_Max', linestyle='--', linewidth=0.8)
 plt.axvline(x=V_md, color='b', label='Min Drag', linestyle='--', linewidth=0.8)
+plt.axhline(y=-15, color='k', label='Min Deflection', linestyle='--', linewidth=0.8)
+plt.axhline(y=15, color='k', label='Max Deflection', linestyle='--', linewidth=0.8)
 plt.grid()
 plt.legend(fontsize='small')
 
@@ -330,10 +332,8 @@ plt.title('Drag Polar')
 plt.xlabel('Drag Coefficient')
 plt.ylabel('Lift Coefficient')
 plt.plot(C_D_i_low, C_L_i_low, linewidth=1.5)
+plt.plot(C_D_i_low, C_L_i_high, linewidth=1.5) # very close so difficult to tell the difference
 plt.errorbar(x=[min(C_D_i_low), max(C_D_i_low)], y=[C_L_max, C_L_max], yerr=0.1*C_L_max, 
-             color='r', label='Max CL ± 10%', linestyle='--', linewidth=0.8, capsize=3)
-plt.plot(C_D_i_high, C_L_i_high, linewidth=1.5)
-plt.errorbar(x=[min(C_D_i_high), max(C_D_i_high)], y=[C_L_max, C_L_max], yerr=0.1*C_L_max, 
              color='r', label='Max CL ± 10%', linestyle='--', linewidth=0.8, capsize=3)
 plt.grid()
 plt.legend(fontsize='small')
