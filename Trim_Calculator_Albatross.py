@@ -23,7 +23,7 @@ ht_ft = 6000 # Altitude (ft) from case study
 ht = ht_ft * 0.3048 # Altitude (m)
 m = 6.126 # Aircraft Dry Mass + Payload Mass (kg) exp
 mtow = 10 # Maximum Take-Off Weight (kg) from datasheet
-h = 0.085 # CG Position from root leading edge (m) from datasheet page
+h = np.linspace(0.06, 0.1) # CG Position from root leading edge (m) from datasheet page
 gamma_e_deg = 0 # Flight Path Angle (deg) MIGHT CHANGE
 gamma_e = gamma_e_deg / 57.3 # Flight Path Angle (rad)
 g = 9.81 # Gravity Constant (ms^-2)
@@ -36,17 +36,6 @@ Ir = -0.0065 # Lapse Rate (Km^-1)
 temp = 288.16 + (Ir * ht) # Temperature (K)
 rho = 1.225 * (temp / 288.16)**(-((g / (Ir * R)) + 1)) # Air Density (kgm^-3)
 sigma = rho / 1.225 # Density ratio
-
-"""
-Check Results 1
-"""
-results1 = [
-    ('temp', temp, 'K'),
-    ('rho', rho, 'kg m^-3'),
-    ('sigma', sigma, '-')
-]
-print('==Output=1=================================')
-output(results1)
 
 """
 3. Set up Velocity Range for Computations
@@ -123,18 +112,6 @@ l_T = l_t - c_w * (h - 0.25) # Tail Arm cg to Tail Quarter Chord (m)
 V_T = (S_T * l_T) / (S * c_w) # Tail Volume Coefficient
 
 """
-Check Results 2
-"""
-results2 = [
-    ('Ar', Ar, '-'),
-    ('s', s, 'm'),
-    ('l_T', l_T, 'm'), 
-     ('V_T', V_T, '-')
-]
-print('==Output=2=================================')
-output(results2)
-
-"""
 8. Downwash at Tail
 """
 x = l_t / b
@@ -156,37 +133,14 @@ for fi in range(5, 175):
 d_epsilon_alpha = A * total * final # Tail Position Relative to Wing (% of span)
 
 """
-Check Results 3
-"""
-results3 = [
-    ('d_ε_α', d_epsilon_alpha, '% of span')
-]
-print('==Output=3=================================')
-output(results3)
-
-"""
 9. Induced Drag Factor
 """
 C = F_d / b
 S_d = (0.9998 + (0.0421 * C)) - (2.6286 * C**2) + (2 * C**3) # Fuselage drag factor
 k_D = (-3.333 * 10**(-4) * lambda_**2) + (6.667 * 10**(-5) * lambda_) + 0.38 # Empirical Constant
 e = 1 / (np.pi * Ar * k_D * C_D0 + (1 / (0.99 * S_d))) # Oswald Efficiency Factor
-# verified reasonable 'e' value with Fundamentals of Flight 2nd edition, page 187
-# tailplane contribution is not considered?
 
 K = 1 / (np.pi * Ar * (e))
-
-"""
-Check Results 4
-"""
-results4 = [
-    ('S_d', S_d, '-'),
-    ('k_D', k_D, '-'),
-    ('e', e, '-'), 
-     ('K', K, '-')
-]
-print('==Output=4=================================')
-output(results4)
 
 """
 10. Basic Performance Parameters
@@ -212,9 +166,8 @@ V_i = [] # True Airspeed (ms^-1)
 V_eas = [] # Equivalent Airspeed (knots)
 array_min = 0.95 * V_stall
 array_max = 1.05 * V_max_knots
-intervals = 50
 
-V_knots = np.linspace(array_min, array_max, intervals)
+V_knots = np.linspace(array_min, array_max)
 V_i = V_knots * 0.515
 V_eas = V_knots * np.sqrt(sigma)
 
@@ -252,17 +205,6 @@ for i in range(0, len(V_i)):
 
 alpha_w_i = alpha_e_i + alpha_w_r # Wing Incidence (rad)
 eta_e_i = C_LT_i / a2 - a1 / a2 * (alpha_w_i * (1 - d_epsilon_alpha) + eta_T - alpha_w_r - epsilon_0) # Trim Elevator Angle (rad)
-
-index = 4
-results_check = [
-    (f'C_LT_i_{index}/a2', C_LT_i[index] / a2, ''), 
-    ('a1/a2', a1 / a2, ''), 
-    (f'α_w_i{index}', alpha_w_i[index], '-'), 
-    ('ηT-αwr-ε0', eta_T - alpha_w_r - epsilon_0, ''),
-    ('(1 - d_ε_α)', (1 - d_epsilon_alpha), '')
-]
-output(results_check) # C_LT_i is too high, making the elevator very sensitive
-
 theta_e_i = gamma_e + alpha_w_i - alpha_w_r # Pitch Attitude (rad)
 alpha_T_i = alpha_w_i * (1 - d_epsilon_alpha) + eta_T - epsilon_0 - alpha_w_r # Tail Angle of Attach (rad)
 LD_i = C_LW_i / C_D_i # Lift to Drag Ratio
@@ -293,44 +235,10 @@ for i in range(0, len(V_i)):
 """
 15. Definition of Flight Condition
 """
-results_flight_condition = [
-    ('mg', m*g, 'N'), 
-    ('ht_ft', ht_ft, 'ft'), 
-    ('gamma_e', gamma_e, 'deg'),
-    ('h', h, '% of chord'), 
-    ('h_n', h_n, '-'), 
-    ('V_md', V_md, 'knots'), 
-    ('V_md_eas', V_md_eas, 'knots'), 
-    ('V_stall', V_stall, 'knots'), 
-    ('V_stall_eas', V_stall_eas, 'knots'), 
-    ('K_n', K_n, '-')
-]
-print('==Definition=of=Flight=Condition===========')
-output(results_flight_condition)
 
 """
 16. Trim Conditions as a Function of Aircraft Velocity
 """
-results_trim_conditions = [
-    ('V_i', V_i[14], 'knots'), 
-    ('C_L_i', C_L_i[14], '-'), 
-    ('C_D_i', C_D_i[14], '-'),
-    ('C_LW_i', C_LW_i[14], '-'), 
-    ('C_LT_i', C_LT_i[14], '-'), 
-    ('LD_i', LD_i[14], '-'), 
-    ('C_tau_i', C_tau_i[14], '-'), 
-    ('alpha_w_i', alpha_w_i[14], 'deg'), 
-    ('alpha_e_i', alpha_e_i[14], 'deg'), 
-    ('theta_e_i', theta_e_i[14], 'deg'), 
-    ('alpha_T_i', alpha_T_i[14], 'deg'), 
-    ('eta_e_i', eta_e_i[14], 'deg'), 
-    ('L_i', L_i[14], 'N'), 
-    ('D_i', D_i[14], 'N'), 
-    ('T_i', T_i[14], 'N')
-]
-
-print('==Trim=Conditions==Demo=Values=============')
-output(results_trim_conditions)
 
 """
 17. Some Useful Trim Plots
