@@ -78,9 +78,10 @@ b_T = 2 * s_T * np.cos(np.radians(tau_T_deg)) # Tailplane Span (m) exp derived
 S_T = (0.11424 + (c_MAC_T * b_T)) / 2 # Tailplane Area (m^2) exp derived averaged
 Ar_T = (3.47 + (b_T**2 / S_T)) / 2 # Tailplane Aspect Ratio exp derived averaged
 l_t = 1.04 # Tail Arm, Quarter Chord Wing to Quarter Chord Tail (m) exp
-lambda_T = 14.04 # Tailplane Sweep Angle (deg)
+lambda_T_deg = 14.04 # Tailplane Sweep Angle (deg)
+lambda_T = lambda_T_deg / 57.3
 z_T = -0.35 # Quarter Chord Z-Coordinate (m) exp
-eta_T_deg = 0 # Tailplane Setting Angle (deg) exp
+eta_T_deg = -2 # Tailplane Setting Angle (deg) exp
 eta_T = eta_T_deg / 57.3 # Tailplane Setting Angle (rad)
 
 # General Geometry
@@ -107,9 +108,9 @@ a1_numerator = 2 * np.pi * Ar_T
 beta = (1 - 0.2**2)**0.5 # Mach Number Parameter
 kappa_ratio = 1 # Ratio of 2D Lift Curve Slope to 2pi (assumed to be perfect, i.e. 1)
 term1 = (Ar_T * beta / kappa_ratio)**2
-term2 = np.tan(np.radians(lambda_T))**2 / beta**2
+term2 = np.tan(lambda_T)**2 / beta**2
 a1_denominator = 2 + np.sqrt(term1 * (1 + term2) + 4)
-a1 = a1_numerator / a1_denominator
+a1 = a1_numerator / a1_denominator # Tail plane CL-alpha (rad^-1)
 a2 = 0.26 * a1 # Elevator CL-eta (rad^-1) aero notes
 epsilon_0_deg = 2 # Zero Lift Downwash Angle (deg) aero notes
 epsilon_0 = epsilon_0_deg / 57.3 # Zero Lift Downwash Angle (rad)
@@ -197,6 +198,10 @@ V_stall = (VCL / np.sqrt(C_L_max)) / 0.515 # Stall Speed (knots)
 V_stall_eas = V_stall * np.sqrt(sigma) # Equivalent Stall Speed (knots)
 h_n = h_0 + V_T * (a1 / a) * (1 - d_epsilon_alpha) # Neutral Points - controls fixed
 K_n = h_n - h # Static Margin - controls fixed
+
+max_thrust = 30 # Maximum Thrust from Llanbedr (N)
+# at trim, thrust = drag
+
 
 V_max_km_hr = 129 # Maximum Airspeed (kmhr^-1) from datasheet
 V_max_knots = V_max_km_hr / 3.6 / 0.515 # Maximum Airspeed (knots)
@@ -332,7 +337,7 @@ output(results_trim_conditions)
 """
 plt.rcParams.update({'font.size': 8})
 plt.figure(figsize=(4,3))
-plt.title('Velocity vs Lift to Drag Ratio')
+plt.title('Lift to Drag Ratio vs True Air Speed')
 plt.xlabel('Velocity (knots)')
 plt.ylabel('Lift to Drag Ratio (-)')
 plt.plot(V_knots, LD_i, linewidth=1.5)
@@ -343,7 +348,7 @@ plt.grid()
 plt.legend(fontsize='small')
 
 plt.figure(figsize=(4,3))
-plt.title('Velocity vs Elevator Angle')
+plt.title('Elevator Angle vs True Air Speed')
 plt.xlabel('Velocity (knots)')
 plt.ylabel('Elevator Angle (deg)')
 plt.plot(V_knots, eta_e_i, linewidth=1.5)
@@ -354,7 +359,7 @@ plt.grid()
 plt.legend(fontsize='small')
 
 plt.figure(figsize=(4,3))
-plt.title('Velocity vs Total Drag')
+plt.title('Total Drag vs True Air Speed')
 plt.xlabel('Velocity (knots)')
 plt.ylabel('Total Drag (N)')
 plt.plot(V_knots, D_i, linewidth=1.5)
