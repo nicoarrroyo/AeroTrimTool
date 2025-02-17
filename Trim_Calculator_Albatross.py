@@ -53,7 +53,6 @@ c_tip = 0.13 # Tip Chord Length (m) exp
 c_root = 0.29 # Root Chord Length (m) exp
 h_high = h_high / c_root # CG Position (% of root chord) from datasheet
 h_low = h_low / c_root # CG Position (% of root chord) from datasheet
-h = 2
 c_w = (((c_tip + c_root) / 2) + 0.223) / 2 # Wing Mean Aerodynamic Chord (m) exp derived averaged
 S = b * c_w # Wing Area (m^2) exp derived
 Ar = b**2 / S # exp derived
@@ -111,8 +110,10 @@ epsilon_0 = epsilon_0_deg / 57.3 # Zero Lift Downwash Angle (rad)
 7. Wing and Tailplane Calculations
 """
 s = b / 2 # Wing Semi-Span (m)
-l_T = l_t - c_w * (h - 0.25) # Tail Arm cg to Tail Quarter Chord (m)
-V_T = (S_T * l_T) / (S * c_w) # Tail Volume Coefficient
+l_T_low = l_t - c_w * (h_low - 0.25) # Tail Arm cg to Tail Quarter Chord (m)
+l_T_high = l_t - c_w * (h_high - 0.25) # Tail Arm cg to Tail Quarter Chord (m)
+V_T_low = (S_T * l_T_low) / (S * c_w) # Tail Volume Coefficient
+V_T_high = (S_T * l_T_high) / (S * c_w) # Tail Volume Coefficient
 
 """
 8. Downwash at Tail
@@ -153,8 +154,10 @@ V_md = (VCL * (K / C_D0)**0.25) / 0.515 # Minimim Drag Speed (knots)
 V_md_eas = V_md * np.sqrt(sigma) # Equivalent Minimum Drag Speed (knots)
 V_stall = (VCL / np.sqrt(C_L_max)) / 0.515 # Stall Speed (knots)
 V_stall_eas = V_stall * np.sqrt(sigma) # Equivalent Stall Speed (knots)
-h_n = h_0 + V_T * (a1 / a) * (1 - d_epsilon_alpha) # Neutral Points - controls fixed
-K_n = h_n - h # Static Margin - controls fixed
+h_n_low = h_0 + V_T_low * (a1 / a) * (1 - d_epsilon_alpha) # Neutral Points - controls fixed
+h_n_high = h_0 + V_T_high * (a1 / a) * (1 - d_epsilon_alpha) # Neutral Points - controls fixed
+K_n_low = h_n_low - h_low # Static Margin - controls fixed
+K_n_high = h_n_high - h_high # Static Margin - controls fixed
 
 max_thrust = 30 # Maximum Thrust from Llanbedr (N)
 # at trim, thrust = drag
@@ -184,7 +187,7 @@ def equations_low(vars): # Defining the system of equations
         (C_tau * np.cos(kappa) - C_D * np.cos(alpha_e) + C_L * np.sin(alpha_e))
     eq3 = - C_D + C_D0 + K * C_L**2
     eq4 = - C_LW + a * (alpha_e + alpha_w_r - alpha_w0)
-    eq5 = C_m_0 + (h_low - h_0) * C_LW - V_T * C_LT + C_tau * z_tau / c_w
+    eq5 = C_m_0 + (h_low - h_0) * C_LW - V_T_low * C_LT + C_tau * z_tau / c_w
     eq6 = - C_LT + (C_L - C_LW) * S / S_T
     return [eq1, eq2, eq3, eq4, eq5, eq6]
 def equations_high(vars): # Defining the system of equations
@@ -195,7 +198,7 @@ def equations_high(vars): # Defining the system of equations
         (C_tau * np.cos(kappa) - C_D * np.cos(alpha_e) + C_L * np.sin(alpha_e))
     eq3 = - C_D + C_D0 + K * C_L**2
     eq4 = - C_LW + a * (alpha_e + alpha_w_r - alpha_w0)
-    eq5 = C_m_0 + (h_high - h_0) * C_LW - V_T * C_LT + C_tau * z_tau / c_w
+    eq5 = C_m_0 + (h_high - h_0) * C_LW - V_T_high * C_LT + C_tau * z_tau / c_w
     eq6 = - C_LT + (C_L - C_LW) * S / S_T
     return [eq1, eq2, eq3, eq4, eq5, eq6]
 
@@ -326,8 +329,11 @@ plt.figure(figsize=(4,3))
 plt.title('Drag Polar')
 plt.xlabel('Drag Coefficient')
 plt.ylabel('Lift Coefficient')
-plt.plot(C_D_i, C_L_i, linewidth=1.5)
-plt.errorbar(x=[min(C_D_i), max(C_D_i)], y=[C_L_max, C_L_max], yerr=0.1*C_L_max, 
+plt.plot(C_D_i_low, C_L_i_low, linewidth=1.5)
+plt.errorbar(x=[min(C_D_i_low), max(C_D_i_low)], y=[C_L_max, C_L_max], yerr=0.1*C_L_max, 
+             color='r', label='Max CL ± 10%', linestyle='--', linewidth=0.8, capsize=3)
+plt.plot(C_D_i_high, C_L_i_high, linewidth=1.5)
+plt.errorbar(x=[min(C_D_i_high), max(C_D_i_high)], y=[C_L_max, C_L_max], yerr=0.1*C_L_max, 
              color='r', label='Max CL ± 10%', linestyle='--', linewidth=0.8, capsize=3)
 plt.grid()
 plt.legend(fontsize='small')
