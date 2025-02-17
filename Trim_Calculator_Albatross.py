@@ -23,7 +23,7 @@ ht_ft = 6000 # Altitude (ft) from case study
 ht = ht_ft * 0.3048 # Altitude (m)
 m = 6.126 # Aircraft Dry Mass + Payload Mass (kg) exp
 mtow = 10 # Maximum Take-Off Weight (kg) from datasheet
-h = (0.085 + 0.095) / 2 # CG Position (m from root leading edge) from datasheet page
+h = 0.085 # CG Position from root leading edge (m) from datasheet page
 gamma_e_deg = 0 # Flight Path Angle (deg) MIGHT CHANGE
 gamma_e = gamma_e_deg / 57.3 # Flight Path Angle (rad)
 g = 9.81 # Gravity Constant (ms^-2)
@@ -65,7 +65,7 @@ h = h / c_root # CG Position (% of root chord) from datasheet
 c_w = (((c_tip + c_root) / 2) + 0.223) / 2 # Wing Mean Aerodynamic Chord (m) exp derived averaged
 S = b * c_w # Wing Area (m^2) exp derived
 Ar = b**2 / S # exp derived
-lambda_ = 0 # Quarter Chord Sweep (deg) exp
+lambda_ = 0 # Wing Quarter Chord Sweep (deg) exp
 z_w = 0 # Z-Coordinate of Quarter Chord (m) exp
 alpha_w_r_deg = (11.539 + 9.46) / 2 # Wing Rigging Angle (deg) exp averaged
 alpha_w_r = alpha_w_r_deg / 57.3 # Wing Rigging Angle (rad)
@@ -78,6 +78,7 @@ b_T = 2 * s_T * np.cos(np.radians(tau_T_deg)) # Tailplane Span (m) exp derived
 S_T = (0.11424 + (c_MAC_T * b_T)) / 2 # Tailplane Area (m^2) exp derived averaged
 Ar_T = (3.47 + (b_T**2 / S_T)) / 2 # Tailplane Aspect Ratio exp derived averaged
 l_t = 1.04 # Tail Arm, Quarter Chord Wing to Quarter Chord Tail (m) exp
+lambda_T = 14.04 # Tailplane Sweep Angle (deg)
 z_T = -0.35 # Quarter Chord Z-Coordinate (m) exp
 eta_T_deg = 0 # Tailplane Setting Angle (deg) exp
 eta_T = eta_T_deg / 57.3 # Tailplane Setting Angle (rad)
@@ -92,17 +93,23 @@ kappa = kappa_deg / 57.3 # Engine Thrust Line Angle (rad)
 5. Wing-Body Aerodynamics
 """
 a = 2 * np.pi * Ar / (2 + Ar) # Wing-body CL-alpha (rad^-1) aero notes
-C_L_max = 1.27 # Maximum Lift Coefficient initial guess +- 10%
-C_m_0 = -0.05 # Zero Lift Pitching Moment Coefficient initial guess
-C_D0 = 0.032 # Zero Lift Drag Coefficient initial guess
-alpha_w0_deg = -2 # Zero Lift Angle of Attack (deg) initial guess
+C_L_max = 1.27 # Maximum Lift Coefficient 3rd year project +- 10%
+C_m_0 = -0.5 # Zero Lift Pitching Moment Coefficient 3rd year project
+C_D0 = 0.032 # Zero Lift Drag Coefficient 3rd year project
+alpha_w0_deg = -2 # Zero Lift Angle of Attack (deg) 3rd year project
 alpha_w0 = alpha_w0_deg / 57.3 # Zero Lift Angle of Attack (rad)
-h_0 = 0.25 # Wing-Body Aero Centre initial guess
+h_0 = 0.25 # Wing-Body Aero Centre 3rd year project
 
 """
 6. Tailplane Aerodynamics
 """
-a1 = 2 * np.pi * Ar_T / (2 + Ar_T) # Tail plane CL-alpha (rad^-1) aero notes
+a1_numerator = 2 * np.pi * Ar_T
+beta = (1 - 0.2**2)**0.5 # Mach Number Parameter
+kappa_ratio = 1 # Ratio of 2D Lift Curve Slope to 2pi (assumed to be perfect, i.e. 1)
+term1 = (Ar_T * beta / kappa_ratio)**2
+term2 = np.tan(np.radians(lambda_T))**2 / beta**2
+a1_denominator = 2 + np.sqrt(term1 * (1 + term2) + 4)
+a1 = a1_numerator / a1_denominator
 a2 = 0.26 * a1 # Elevator CL-eta (rad^-1) aero notes
 epsilon_0_deg = 2 # Zero Lift Downwash Angle (deg) aero notes
 epsilon_0 = epsilon_0_deg / 57.3 # Zero Lift Downwash Angle (rad)
@@ -198,8 +205,8 @@ V_max_i = V_max_knots * 0.515 # Maximum Airspeed (ms^-1)
 V_knots = [] # True Airspeed (knots)
 V_i = [] # True Airspeed (ms^-1)
 V_eas = [] # Equivalent Airspeed (knots)
-array_min = 0.9 * V_stall
-array_max = 1.1 * V_max_knots
+array_min = 0.95 * V_stall
+array_max = 1.05 * V_max_knots
 intervals = 50
 
 V_knots = np.linspace(array_min, array_max, intervals)
@@ -240,6 +247,17 @@ for i in range(0, len(V_i)):
 
 alpha_w_i = alpha_e_i + alpha_w_r # Wing Incidence (rad)
 eta_e_i = C_LT_i / a2 - a1 / a2 * (alpha_w_i * (1 - d_epsilon_alpha) + eta_T - alpha_w_r - epsilon_0) # Trim Elevator Angle (rad)
+
+index = 4
+results_check = [
+    (f'C_LT_i_{index}/a2', C_LT_i[index] / a2, ''), 
+    ('a1/a2', a1 / a2, ''), 
+    (f'α_w_i{index}', alpha_w_i[index], '-'), 
+    ('ηT-αwr-ε0', eta_T - alpha_w_r - epsilon_0, ''),
+    ('(1 - d_ε_α)', (1 - d_epsilon_alpha), '')
+]
+output(results_check) # C_LT_i is too high, making the elevator very sensitive
+
 theta_e_i = gamma_e + alpha_w_i - alpha_w_r # Pitch Attitude (rad)
 alpha_T_i = alpha_w_i * (1 - d_epsilon_alpha) + eta_T - epsilon_0 - alpha_w_r # Tail Angle of Attach (rad)
 LD_i = C_LW_i / C_D_i # Lift to Drag Ratio
@@ -360,5 +378,5 @@ plt.legend(fontsize='small')
 References
 ==========
 datasheet page - https://www.appliedaeronautics.com/albatross-uav#:~:text=The%20Albatross%20UAV%20offers%20robust,needing%20to%20land%20to%20recharge.
-
+accounting for tailplane sweep https://www.sciencedirect.com/science/article/pii/B978012397308500009X#fd108
 """
