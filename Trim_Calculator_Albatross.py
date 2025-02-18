@@ -281,21 +281,20 @@ eta_e_i = []
 D_i = []
 C_L_i = []
 C_D_i = []
-n_h = 10
+n_h = 5
 h = np.linspace(0.05, 0.15, n_h)
 
 for i, h_current in enumerate(h):
     result.append(do_trim(h_current))
-    V_knots.append(result[i])
-    LD_i.append(result[i])
-    V_stall.append(result[i])
-    V_max_knots.append(result[i])
-    V_md.append(result[i])
-    eta_e_i.append(result[i])
-    D_i.append(result[i])
-    C_L_i.append(result[i])
-    C_D_i.append(result[i])
-
+    V_knots.append(result[i][0])
+    LD_i.append(result[i][1])
+    V_stall.append(result[i][2])
+    V_max_knots.append(result[i][3])
+    V_md.append(result[i][4])
+    eta_e_i.append(result[i][5])
+    D_i.append(result[i][6])
+    C_L_i.append(result[i][7])
+    C_D_i.append(result[i][8])
 """
 17. Some Useful Trim Plots
 """
@@ -304,11 +303,11 @@ plt.figure(figsize=(4,3))
 plt.title('Lift to Drag Ratio vs True Air Speed')
 plt.xlabel('Velocity (knots)')
 plt.ylabel('Lift to Drag Ratio (-)')
-for i in range(0, n_h):
-    plt.plot(V_knots[i, :], LD_i[i, :], linewidth=1.5)
-plt.axvline(x=V_stall, color='r', label='V_Stall', linestyle='--', linewidth=0.8)
-plt.axvline(x=V_max_knots, color='g', label='V_Max', linestyle='--', linewidth=0.8)
-plt.axvline(x=V_md, color='b', label='Min Drag', linestyle='--', linewidth=0.8)
+for i in range(n_h):
+    plt.plot(V_knots[i], LD_i[i], linewidth=1.5)
+plt.axvline(x=V_stall[0], color='r', label='V_Stall', linestyle='--', linewidth=0.8)
+plt.axvline(x=V_max_knots[0], color='g', label='V_Max', linestyle='--', linewidth=0.8)
+plt.axvline(x=V_md[0], color='b', label='Min Drag', linestyle='--', linewidth=0.8)
 plt.grid()
 plt.legend(fontsize='small')
 
@@ -316,12 +315,11 @@ plt.figure(figsize=(4,3))
 plt.title('Elevator Angle vs True Air Speed')
 plt.xlabel('Velocity (knots)')
 plt.ylabel('Elevator Angle (deg)')
-plt.plot(V_knots, eta_e_i, linewidth=1.5)
-for i in range(0, n_h):
-    plt.plot(V_knots[i, :], LD_i[i, :], linewidth=1.5)
-    plt.axvline(x=V_stall[i], color='r', label='V_Stall', linestyle='--', linewidth=0.8)
-    plt.axvline(x=V_max_knots[i], color='g', label='V_Max', linestyle='--', linewidth=0.8)
-    plt.axvline(x=V_md, color='b', label='Min Drag', linestyle='--', linewidth=0.8)
+for i in range(n_h):
+    plt.plot(V_knots[i], eta_e_i[i], linewidth=1.5)
+plt.axvline(x=V_stall[0], color='r', label='V_Stall', linestyle='--', linewidth=0.8)
+plt.axvline(x=V_max_knots[0], color='g', label='V_Max', linestyle='--', linewidth=0.8)
+plt.axvline(x=V_md[0], color='b', label='Min Drag', linestyle='--', linewidth=0.8)
 plt.axhline(y=-15, color='k', label='Min Deflection', linestyle='--', linewidth=0.8)
 plt.axhline(y=15, color='k', label='Max Deflection', linestyle='--', linewidth=0.8)
 plt.grid()
@@ -331,10 +329,11 @@ plt.figure(figsize=(4,3))
 plt.title('Total Drag vs True Air Speed')
 plt.xlabel('Velocity (knots)')
 plt.ylabel('Total Drag (N)')
-plt.plot(V_knots, D_i, linewidth=1.5)
-plt.axvline(x=V_stall, color='r', label='V_Stall', linestyle='--', linewidth=0.8)
-plt.axvline(x=V_max_knots, color='g', label='V_Max', linestyle='--', linewidth=0.8)
-plt.axvline(x=V_md, color='b', label='Min Drag', linestyle='--', linewidth=0.8)
+for i in range(n_h):
+    plt.plot(V_knots[i], D_i[i], linewidth=1.5)
+plt.axvline(x=V_stall[0], color='r', label='V_Stall', linestyle='--', linewidth=0.8)
+plt.axvline(x=V_max_knots[0], color='g', label='V_Max', linestyle='--', linewidth=0.8)
+plt.axvline(x=V_md[0], color='b', label='Min Drag', linestyle='--', linewidth=0.8)
 plt.grid()
 plt.legend(fontsize='small')
 
@@ -342,8 +341,9 @@ plt.figure(figsize=(4,3))
 plt.title('Drag Polar')
 plt.xlabel('Drag Coefficient')
 plt.ylabel('Lift Coefficient')
-plt.plot(C_D_i, C_L_i, linewidth=1.5)
-plt.errorbar(x=[min(C_D_i), max(C_D_i)], y=[C_L_max, C_L_max], yerr=0.1*C_L_max, 
+for i in range(n_h):
+    plt.plot(C_D_i[i], C_L_i[i], linewidth=1.5)
+plt.errorbar(x=[min(C_D_i[0]), max(C_D_i[0])], y=[C_L_max, C_L_max], yerr=0.1*C_L_max, 
              color='r', label='Max CL ± 10%', linestyle='--', linewidth=0.8, capsize=3)
 plt.grid()
 plt.legend(fontsize='small')
