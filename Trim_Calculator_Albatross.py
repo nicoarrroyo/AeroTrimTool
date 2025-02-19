@@ -48,7 +48,7 @@ def make_vel_plot(x_list, y_list, xlabel, ylabel, title, save_image):
         while os.path.exists(plot_name):
             plot_name = f'{base_name}_{counter}{extension}'
             counter += 1
-        plt.savefig(plot_name, bbox_inches='tight')
+        plt.savefig(plot_name, dpi=1000, bbox_inches='tight')
     
     plt.show()
 
@@ -69,7 +69,6 @@ R = 287.05 # Gas Constant (Nm kg^-1 K^-1)
 Ir = -0.0065 # Lapse Rate (Km^-1)
 temp = 288.16 + (Ir * ht) # Temperature (K)
 rho = 1.225 * (temp / 288.16)**(-((g / (Ir * R)) + 1)) # Air Density (kgm^-3)
-V_sound = np.sqrt(1.4 * R * temp)
 
 """
 3. Set up Velocity Range for Computations
@@ -88,7 +87,7 @@ c_w = (((c_tip + c_root) / 2) + 0.223) / 2 # Wing Mean Aerodynamic Chord (m) exp
 S = b * c_w # Wing Area (m^2) exp derived
 Ar = b**2 / S # exp derived
 lambda_deg = 0 # Wing Quarter Chord Sweep (deg) exp
-lambda_ = lambda_deg / 57.3
+lambda_ = lambda_deg / 57.3 # Wing Quarter Chord Sweep (rad) exp
 z_w = 0 # Z-Coordinate of Quarter Chord (m) exp
 alpha_w_r_deg = (11.539 + 9.46) / 2 # Wing Rigging Angle (deg) exp averaged
 alpha_w_r = alpha_w_r_deg / 57.3 # Wing Rigging Angle (rad)
@@ -99,8 +98,6 @@ tau_T_deg = 36.1 # Tailplane Dihedral (deg) exp
 c_MAC_T = 0.14 # Tailplane Mean Aerodynamic Chord (m) exp
 b_T = 2 * s_T * np.cos(np.radians(tau_T_deg)) # Tailplane Span (m) exp derived
 S_T = (0.11424 + (c_MAC_T * b_T)) / 2 # Tailplane Area (m^2) exp derived averaged
-S_eta = 0.012188 # Elevator Reference Area (m^2) exp
-Ar_eta = (b_T**2 / S_eta) # Elevator Aspect Ratio
 Ar_T = (3.47 + (b_T**2 / S_T)) / 2 # Tailplane Aspect Ratio exp derived averaged
 l_t = 1.04 # Tail Arm, Quarter Chord Wing to Quarter Chord Tail (m) exp
 lambda_T_deg = 14.04 # Tailplane Sweep Angle (deg)
@@ -340,7 +337,7 @@ for i, h_current in enumerate(h):
 """
 17. Some Useful Trim Plots
 """
-save_images = False
+save_images = True
 plt.rcParams.update({'font.size': 8})
 make_vel_plot(x_list=V_knots, y_list=LD_i, xlabel='Velocity (knots)', ylabel='Lift to Drag Ratio (-)', 
               title='Lift to Drag Ratio vs True Air Speed', save_image=save_images)
