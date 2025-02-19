@@ -23,32 +23,31 @@ def make_vel_plot(x_list, y_list, xlabel, ylabel, title, save_image):
     plt.xlabel(xlabel)
     plt.ylabel(ylabel)
     for i in range(n_h):
-        plt.plot(x_list[i], y_list[i], linewidth=1.5, label=f'h={(h[i]):.2f}m')
+        if y_list[0][0] != K_n[0]:
+            plt.plot(x_list[i], y_list[i], linewidth=1.5, label=f'h={(h[i]):.2f}m')
+            plt.axvline(x=V_stall[0], color='r', label='V_Stall', linestyle='--', linewidth=0.8)
+            plt.axvline(x=V_max_knots[0], color='g', label='V_Max', linestyle='--', linewidth=0.8)
+            plt.axvline(x=V_md[0], color='b', label='Min Drag', linestyle='--', linewidth=0.8)
+        else:
+            plt.plot(x_list[i], y_list[i], linewidth=1.5, label=f'h={(h[i]):.2f}m')
     
-    if x_list[0][0] == C_D_i[0][0]:
-        plt.errorbar(x=[min(x_list[0]), max(x_list[0])], y=[C_L_max, C_L_max], yerr=0.1*C_L_max, 
-             color='r', label='Max CL ± 10%', linestyle='--', linewidth=0.8, capsize=3)
-    else:
-        plt.axvline(x=V_stall[0], color='r', label='V_Stall', linestyle='--', linewidth=0.8)
-        plt.axvline(x=V_max_knots[0], color='g', label='V_Max', linestyle='--', linewidth=0.8)
-        plt.axvline(x=V_md[0], color='b', label='Min Drag', linestyle='--', linewidth=0.8)
-        
-        if y_list[0][0] == eta_e_i[0][0]:
-            plt.axhline(y=-15, color='k', label='Min Deflection', linestyle='--', linewidth=0.8)
-            plt.axhline(y=15, color='k', label='Max Deflection', linestyle='--', linewidth=0.8)
+    if y_list[0][0] == eta_e_i[0][0]:
+        plt.axhline(y=-15, color='k', label='Min Deflection', linestyle='--', linewidth=0.8)
+        plt.axhline(y=15, color='k', label='Max Deflection', linestyle='--', linewidth=0.8)
     plt.grid()
     plt.legend(fontsize='5')
     
     if save_images:
-        plot_name = f'X{xlabel}_Y{ylabel}.png'
-        # check for file name already existing and increment file name
-        base_name, extension = os.path.splitext(plot_name)
-        counter = 1
-        os.chdir('C:\\Users\\nicol\\Documents\\UoM\\YEAR 3\\TERM 2\\Flight Dynamics\\CW1\\Figures')
-        while os.path.exists(plot_name):
-            plot_name = f'{base_name}_{counter}{extension}'
-            counter += 1
-        plt.savefig(plot_name, dpi=1000, bbox_inches='tight')
+        if y_list[0][0] == K_n[0][0]:
+            plot_name = f'X{xlabel}_Y{ylabel}.png'
+            # check for file name already existing and increment file name
+            base_name, extension = os.path.splitext(plot_name)
+            counter = 1
+            os.chdir('C:\\Users\\nicol\\Documents\\UoM\\YEAR 3\\TERM 2\\Flight Dynamics\\CW1\\Figures')
+            while os.path.exists(plot_name):
+                plot_name = f'{base_name}_{counter}{extension}'
+                counter += 1
+            plt.savefig(plot_name, dpi=1000, bbox_inches='tight')
     
     plt.show()
 
@@ -304,7 +303,7 @@ def do_trim(h):
     
     results = [
         V_knots, LD_i, V_stall, V_max_knots, V_md, 
-        eta_e_i, D_i, C_L_i, C_D_i
+        eta_e_i, D_i, K_n
         ]
     print('Completed computation for CG position', h)
     return results
@@ -317,8 +316,7 @@ V_max_knots = []
 V_md = []
 eta_e_i = []
 D_i = []
-C_L_i = []
-C_D_i = []
+K_n = []
 n_h = 6
 h = np.linspace(0.07, 0.12, n_h) # CG Position Range from MAC leading edge (m)
 
@@ -331,8 +329,7 @@ for i, h_current in enumerate(h):
     V_md.append(result[i][4])
     eta_e_i.append(result[i][5])
     D_i.append(result[i][6])
-    C_L_i.append(result[i][7])
-    C_D_i.append(result[i][8])
+    K_n.append(result[i][7])
 
 """
 17. Some Useful Trim Plots
@@ -348,8 +345,8 @@ make_vel_plot(x_list=V_knots, y_list=eta_e_i, xlabel='Velocity (knots)', ylabel=
 make_vel_plot(x_list=V_knots, y_list=D_i, xlabel='Velocity (knots)', ylabel='Total Drag (N)', 
               title='Total Drag vs True Air Speed', save_image=save_images)
 
-make_vel_plot(x_list=C_D_i, y_list=C_L_i, xlabel='Drag Coefficient', ylabel='Lift Coefficient', 
-              title='Drag Polar', save_image=save_images)
+make_vel_plot(x_list=h, y_list=K_n, xlabel='Static Margin (m)', ylabel='CG Position', 
+              title='Static Margin vs CG Position', save_image=save_images)
 
 """
 References
