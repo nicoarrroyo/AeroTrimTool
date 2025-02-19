@@ -138,13 +138,6 @@ a1_denominator = 2 + np.sqrt(term1 * (1 + term2) + 4)
 a1 = a1_numerator / a1_denominator # Tail plane CL-alpha (rad^-1)
 a2 = 0.26 * a1 # Elevator CL-eta using tailplane values (rad^-1) aero notes
 
-a1_eta_numerator = 2 * np.pi * Ar_eta
-term1_eta = (Ar_eta * beta / kappa_ratio)**2
-term2_eta = np.tan(lambda_T)**2 / beta**2
-a1_eta_denominator = 2 + np.sqrt(term1 * (1 + term2) + 4)
-a1_eta = a1_eta_numerator / a1_eta_denominator # Tail plane CL-alpha (rad^-1)
-a2 = 0.26 * (a1 + a1_eta) # Elevator CL-eta using elevator values (rad^-1)
-
 epsilon_0_deg = 2 # Zero Lift Downwash Angle (deg) aero notes
 epsilon_0 = epsilon_0_deg / 57.3 # Zero Lift Downwash Angle (rad)
 
@@ -199,8 +192,6 @@ def do_trim(h):
     V_md = (VCL * (K / C_D0)**0.25) / 0.515 # Minimim Drag Speed (knots)
     V_stall = (VCL / np.sqrt(C_L_max)) / 0.515 # Stall Speed (knots)
     
-    V_max_km_hr_ds = 129 # Maximum Airspeed (kmhr^-1) from datasheet
-    V_max_knots_ds = V_max_km_hr_ds / 3.6 / 0.515 # Maximum Airspeed from datasheet (knots)
     V_max_knots = 103 # Maximum Airspeed calculated with maximum thrust
     
     array_min = 0.95 * V_stall
@@ -332,7 +323,7 @@ D_i = []
 C_L_i = []
 C_D_i = []
 n_h = 6
-h = np.linspace(0.07, 0.11, n_h) # CG Position Range from MAC leading edge (m)
+h = np.linspace(0.07, 0.12, n_h) # CG Position Range from MAC leading edge (m)
 
 for i, h_current in enumerate(h):
     result.append(do_trim(h_current))
@@ -349,7 +340,7 @@ for i, h_current in enumerate(h):
 """
 17. Some Useful Trim Plots
 """
-save_images = True
+save_images = False
 plt.rcParams.update({'font.size': 8})
 make_vel_plot(x_list=V_knots, y_list=LD_i, xlabel='Velocity (knots)', ylabel='Lift to Drag Ratio (-)', 
               title='Lift to Drag Ratio vs True Air Speed', save_image=save_images)
