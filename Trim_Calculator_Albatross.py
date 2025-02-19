@@ -87,7 +87,8 @@ c_root = 0.29 # Root Chord Length (m) exp
 c_w = (((c_tip + c_root) / 2) + 0.223) / 2 # Wing Mean Aerodynamic Chord (m) exp derived averaged
 S = b * c_w # Wing Area (m^2) exp derived
 Ar = b**2 / S # exp derived
-lambda_ = 0 # Wing Quarter Chord Sweep (deg) exp
+lambda_deg = 0 # Wing Quarter Chord Sweep (deg) exp
+lambda_ = lambda_deg / 57.3
 z_w = 0 # Z-Coordinate of Quarter Chord (m) exp
 alpha_w_r_deg = (11.539 + 9.46) / 2 # Wing Rigging Angle (deg) exp averaged
 alpha_w_r = alpha_w_r_deg / 57.3 # Wing Rigging Angle (rad)
@@ -98,6 +99,8 @@ tau_T_deg = 36.1 # Tailplane Dihedral (deg) exp
 c_MAC_T = 0.14 # Tailplane Mean Aerodynamic Chord (m) exp
 b_T = 2 * s_T * np.cos(np.radians(tau_T_deg)) # Tailplane Span (m) exp derived
 S_T = (0.11424 + (c_MAC_T * b_T)) / 2 # Tailplane Area (m^2) exp derived averaged
+S_eta = 0.012188 # Elevator Reference Area (m^2) exp
+Ar_eta = (b_T**2 / S_eta) # Elevator Aspect Ratio
 Ar_T = (3.47 + (b_T**2 / S_T)) / 2 # Tailplane Aspect Ratio exp derived averaged
 l_t = 1.04 # Tail Arm, Quarter Chord Wing to Quarter Chord Tail (m) exp
 lambda_T_deg = 14.04 # Tailplane Sweep Angle (deg)
@@ -127,13 +130,21 @@ h_0 = 0.25 # Wing-Body Aero Centre 3rd year project
 6. Tailplane Aerodynamics
 """
 a1_numerator = 2 * np.pi * Ar_T
-beta = (1 - 0.07**2)**0.5 # Mach Number Parameter
+beta = (1 - 0.07**2)**0.5 # Mach Number Parameter (M ASSUMPTION AS 0.07 (calculated))
 kappa_ratio = 1 # Ratio of 2D Lift Curve Slope to 2pi (ASSUMPTION to be perfect, i.e. 1)
 term1 = (Ar_T * beta / kappa_ratio)**2
 term2 = np.tan(lambda_T)**2 / beta**2
 a1_denominator = 2 + np.sqrt(term1 * (1 + term2) + 4)
 a1 = a1_numerator / a1_denominator # Tail plane CL-alpha (rad^-1)
-a2 = 0.26 * a1 # Elevator CL-eta (rad^-1) aero notes
+a2 = 0.26 * a1 # Elevator CL-eta using tailplane values (rad^-1) aero notes
+
+a1_eta_numerator = 2 * np.pi * Ar_eta
+term1_eta = (Ar_eta * beta / kappa_ratio)**2
+term2_eta = np.tan(lambda_T)**2 / beta**2
+a1_eta_denominator = 2 + np.sqrt(term1 * (1 + term2) + 4)
+a1_eta = a1_eta_numerator / a1_eta_denominator # Tail plane CL-alpha (rad^-1)
+a2 = 0.26 * (a1 + a1_eta) # Elevator CL-eta using elevator values (rad^-1)
+
 epsilon_0_deg = 2 # Zero Lift Downwash Angle (deg) aero notes
 epsilon_0 = epsilon_0_deg / 57.3 # Zero Lift Downwash Angle (rad)
 
@@ -188,11 +199,9 @@ def do_trim(h):
     V_md = (VCL * (K / C_D0)**0.25) / 0.515 # Minimim Drag Speed (knots)
     V_stall = (VCL / np.sqrt(C_L_max)) / 0.515 # Stall Speed (knots)
     
-    max_thrust = 30 # Maximum Thrust from Llanbedr (N)
-    # at trim, thrust = drag
-    
-    V_max_km_hr = 129 # Maximum Airspeed (kmhr^-1) from datasheet
-    V_max_knots = V_max_km_hr / 3.6 / 0.515 # Maximum Airspeed (knots)
+    V_max_km_hr_ds = 129 # Maximum Airspeed (kmhr^-1) from datasheet
+    V_max_knots_ds = V_max_km_hr_ds / 3.6 / 0.515 # Maximum Airspeed from datasheet (knots)
+    V_max_knots = 103 # Maximum Airspeed calculated with maximum thrust
     
     array_min = 0.95 * V_stall
     array_max = 1.05 * V_max_knots
