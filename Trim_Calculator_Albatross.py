@@ -103,7 +103,7 @@ l_t = 1.04 # Tail Arm, Quarter Chord Wing to Quarter Chord Tail (m) exp
 lambda_T_deg = 14.04 # Tailplane Sweep Angle (deg)
 lambda_T = lambda_T_deg / 57.3
 z_T = -0.35 # Quarter Chord Z-Coordinate (m) exp
-eta_T_deg = 8 # Tailplane Setting Angle (deg) exp ASSUMPTION / GUESS
+eta_T_deg = 9 # Tailplane Setting Angle (deg) exp ASSUMPTION / GUESS
 eta_T = eta_T_deg / 57.3 # Tailplane Setting Angle (rad)
 
 # General Geometry
@@ -337,7 +337,7 @@ for i, h_current in enumerate(h):
 """
 17. Some Useful Trim Plots
 """
-save_images = True
+save_images = False
 plt.rcParams.update({'font.size': 8})
 make_vel_plot(x_list=V_knots, y_list=LD_i, xlabel='Velocity (knots)', ylabel='Lift to Drag Ratio (-)', 
               title='Lift to Drag Ratio vs True Air Speed', save_image=save_images)
