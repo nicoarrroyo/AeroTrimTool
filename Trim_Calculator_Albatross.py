@@ -10,11 +10,47 @@ Nicolas Arroyo 11091029
 import numpy as np
 from scipy.optimize import fsolve
 import matplotlib.pyplot as plt
+import os
 
 def output(results):
     print('|      Variable |      Value |      Units |')
     for var, val, unit in results:
         print(f'| {var:>13} | {round(val, 3):>10} | {unit:>10} |')
+
+def make_vel_plot(x_list, y_list, xlabel, ylabel, title, save_image):
+    plt.figure(figsize=(4,3))
+    plt.title(title)
+    plt.xlabel(xlabel)
+    plt.ylabel(ylabel)
+    for i in range(n_h):
+        plt.plot(x_list[i], y_list[i], linewidth=1.5, label=f'h={(h[i]):.2f}m')
+    
+    if x_list[0][0] == C_D_i[0][0]:
+        plt.errorbar(x=[min(x_list[0]), max(x_list[0])], y=[C_L_max, C_L_max], yerr=0.1*C_L_max, 
+             color='r', label='Max CL ± 10%', linestyle='--', linewidth=0.8, capsize=3)
+    else:
+        plt.axvline(x=V_stall[0], color='r', label='V_Stall', linestyle='--', linewidth=0.8)
+        plt.axvline(x=V_max_knots[0], color='g', label='V_Max', linestyle='--', linewidth=0.8)
+        plt.axvline(x=V_md[0], color='b', label='Min Drag', linestyle='--', linewidth=0.8)
+        
+        if y_list[0][0] == eta_e_i[0][0]:
+            plt.axhline(y=-15, color='k', label='Min Deflection', linestyle='--', linewidth=0.8)
+            plt.axhline(y=15, color='k', label='Max Deflection', linestyle='--', linewidth=0.8)
+    plt.grid()
+    plt.legend(fontsize='5')
+    
+    if save_images:
+        plot_name = f'X{xlabel}_Y{ylabel}.png'
+        # check for file name already existing and increment file name
+        base_name, extension = os.path.splitext(plot_name)
+        counter = 1
+        os.chdir('C:\\Users\\nicol\\Documents\\UoM\\YEAR 3\\TERM 2\\Flight Dynamics\\CW1\\Figures')
+        while os.path.exists(plot_name):
+            plot_name = f'{base_name}_{counter}{extension}'
+            counter += 1
+        plt.savefig(plot_name, bbox_inches='tight')
+    
+    plt.show()
 
 print_checks = False
 
@@ -67,7 +103,7 @@ l_t = 1.04 # Tail Arm, Quarter Chord Wing to Quarter Chord Tail (m) exp
 lambda_T_deg = 14.04 # Tailplane Sweep Angle (deg)
 lambda_T = lambda_T_deg / 57.3
 z_T = -0.35 # Quarter Chord Z-Coordinate (m) exp
-eta_T_deg = 8 # Tailplane Setting Angle (deg) exp
+eta_T_deg = 8 # Tailplane Setting Angle (deg) exp ASSUMPTION / GUESS
 eta_T = eta_T_deg / 57.3 # Tailplane Setting Angle (rad)
 
 # General Geometry
@@ -92,7 +128,7 @@ h_0 = 0.25 # Wing-Body Aero Centre 3rd year project
 """
 a1_numerator = 2 * np.pi * Ar_T
 beta = (1 - 0.07**2)**0.5 # Mach Number Parameter
-kappa_ratio = 1 # Ratio of 2D Lift Curve Slope to 2pi (assumed to be perfect, i.e. 1)
+kappa_ratio = 1 # Ratio of 2D Lift Curve Slope to 2pi (ASSUMPTION to be perfect, i.e. 1)
 term1 = (Ar_T * beta / kappa_ratio)**2
 term2 = np.tan(lambda_T)**2 / beta**2
 a1_denominator = 2 + np.sqrt(term1 * (1 + term2) + 4)
@@ -105,7 +141,7 @@ def do_trim(h):
     gamma_e_deg = 0 # Flight Path Angle (deg) MIGHT CHANGE
     gamma_e = gamma_e_deg / 57.3 # Flight Path Angle (rad)
     
-    h = h # Lowest CG Position from MAC leading edge (m)
+    h = h # CG Position from MAC leading edge (m)
     h = h / c_w # CG Position (% of MAC)
     
     """
@@ -164,6 +200,9 @@ def do_trim(h):
     V_knots = np.linspace(array_min, array_max) # True Airspeed (knots)
     V_i = V_knots * 0.515 # True Airspeed (ms^-1)
     
+    h_n = h_0 + V_T * (a1 / a) * (1 - d_epsilon_alpha) # Neutral Points - controls fixed
+    K_n = h_n - h # Static Margin - controls fixed
+    
     """
     11. Trim Calculation
     """
@@ -216,8 +255,8 @@ def do_trim(h):
     14. Total Trim Forces Acting on Aircraft
     """
     L_i = []
-    D_i= []
-    T_i= []
+    D_i = []
+    T_i = []
     
     for i in range(0, len(V_i)):
         vel = V_i[i]
@@ -230,6 +269,8 @@ def do_trim(h):
     """
     if print_checks:
         results_flight_condition = [
+            ('h_n', h_n, '-'), 
+            ('K_n', K_n, '-'), 
             ('mg', m*g, 'N'), 
             ('ht_ft', ht_ft, 'ft'), 
             ('gamma_e', gamma_e, 'deg'),
@@ -281,8 +322,8 @@ eta_e_i = []
 D_i = []
 C_L_i = []
 C_D_i = []
-n_h = 5
-h = np.linspace(0.05, 0.15, n_h)
+n_h = 6
+h = np.linspace(0.07, 0.11, n_h) # CG Position Range from MAC leading edge (m)
 
 for i, h_current in enumerate(h):
     result.append(do_trim(h_current))
@@ -295,58 +336,23 @@ for i, h_current in enumerate(h):
     D_i.append(result[i][6])
     C_L_i.append(result[i][7])
     C_D_i.append(result[i][8])
+
 """
 17. Some Useful Trim Plots
 """
+save_images = True
 plt.rcParams.update({'font.size': 8})
-plt.figure(figsize=(4,3))
-plt.title('Lift to Drag Ratio vs True Air Speed')
-plt.xlabel('Velocity (knots)')
-plt.ylabel('Lift to Drag Ratio (-)')
-for i in range(n_h):
-    plt.plot(V_knots[i], LD_i[i], linewidth=1.5)
-plt.axvline(x=V_stall[0], color='r', label='V_Stall', linestyle='--', linewidth=0.8)
-plt.axvline(x=V_max_knots[0], color='g', label='V_Max', linestyle='--', linewidth=0.8)
-plt.axvline(x=V_md[0], color='b', label='Min Drag', linestyle='--', linewidth=0.8)
-plt.grid()
-plt.legend(fontsize='small')
+make_vel_plot(x_list=V_knots, y_list=LD_i, xlabel='Velocity (knots)', ylabel='Lift to Drag Ratio (-)', 
+              title='Lift to Drag Ratio vs True Air Speed', save_image=save_images)
 
-plt.figure(figsize=(4,3))
-plt.title('Elevator Angle vs True Air Speed')
-plt.xlabel('Velocity (knots)')
-plt.ylabel('Elevator Angle (deg)')
-for i in range(n_h):
-    plt.plot(V_knots[i], eta_e_i[i], linewidth=1.5)
-plt.axvline(x=V_stall[0], color='r', label='V_Stall', linestyle='--', linewidth=0.8)
-plt.axvline(x=V_max_knots[0], color='g', label='V_Max', linestyle='--', linewidth=0.8)
-plt.axvline(x=V_md[0], color='b', label='Min Drag', linestyle='--', linewidth=0.8)
-plt.axhline(y=-15, color='k', label='Min Deflection', linestyle='--', linewidth=0.8)
-plt.axhline(y=15, color='k', label='Max Deflection', linestyle='--', linewidth=0.8)
-plt.grid()
-plt.legend(fontsize='small')
+make_vel_plot(x_list=V_knots, y_list=eta_e_i, xlabel='Velocity (knots)', ylabel='Elevator Angle (deg)', 
+              title='Elevator Angle vs True Air Speed', save_image=save_images)
 
-plt.figure(figsize=(4,3))
-plt.title('Total Drag vs True Air Speed')
-plt.xlabel('Velocity (knots)')
-plt.ylabel('Total Drag (N)')
-for i in range(n_h):
-    plt.plot(V_knots[i], D_i[i], linewidth=1.5)
-plt.axvline(x=V_stall[0], color='r', label='V_Stall', linestyle='--', linewidth=0.8)
-plt.axvline(x=V_max_knots[0], color='g', label='V_Max', linestyle='--', linewidth=0.8)
-plt.axvline(x=V_md[0], color='b', label='Min Drag', linestyle='--', linewidth=0.8)
-plt.grid()
-plt.legend(fontsize='small')
+make_vel_plot(x_list=V_knots, y_list=D_i, xlabel='Velocity (knots)', ylabel='Total Drag (N)', 
+              title='Total Drag vs True Air Speed', save_image=save_images)
 
-plt.figure(figsize=(4,3))
-plt.title('Drag Polar')
-plt.xlabel('Drag Coefficient')
-plt.ylabel('Lift Coefficient')
-for i in range(n_h):
-    plt.plot(C_D_i[i], C_L_i[i], linewidth=1.5)
-plt.errorbar(x=[min(C_D_i[0]), max(C_D_i[0])], y=[C_L_max, C_L_max], yerr=0.1*C_L_max, 
-             color='r', label='Max CL ± 10%', linestyle='--', linewidth=0.8, capsize=3)
-plt.grid()
-plt.legend(fontsize='small')
+make_vel_plot(x_list=C_D_i, y_list=C_L_i, xlabel='Drag Coefficient', ylabel='Lift Coefficient', 
+              title='Drag Polar', save_image=save_images)
 
 """
 References
