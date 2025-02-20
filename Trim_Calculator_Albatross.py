@@ -12,11 +12,6 @@ from scipy.optimize import fsolve
 import matplotlib.pyplot as plt
 import os
 
-def output(results):
-    print('|      Variable |      Value |      Units |')
-    for var, val, unit in results:
-        print(f'| {var:>13} | {round(val, 3):>10} | {unit:>10} |')
-
 def make_plot(x_list, y_list, xlabel, ylabel, title):
     plt.figure(figsize=(4,3))
     plt.title(title)
@@ -51,7 +46,7 @@ def save_plot(plot_name, save_image):
 """
 ht_ft = 6000 # Altitude (ft) from case study
 ht = ht_ft * 0.3048 # Altitude (m)
-m = 6.126 + 1.2 # Aircraft Dry Mass + Payload Mass (kg) exp + case study
+m = 6.126 + 1.2 # Aircraft Dry Mass + Payload Mass (kg) measured + case study
 g = 9.81 # Gravity Constant (ms^-2)
 
 """
@@ -65,42 +60,42 @@ rho = 1.225 * (temp / 288.16)**(-((g / (Ir * R)) + 1)) # Air Density (kgm^-3)
 """
 3. Set up Velocity Range for Computations
 (note that true airspeed (TAS) is assumed unless otherwise stated)
+see Section 10. Basic Performance Parameters
 """
-# See Section 10. Basic Performance Parameters
 
 """
 4. Aircraft Geometry
 """
 # Wing Geometry
-b = (3.01 + 2.96) / 2 # Wing Span (m) exp averaged
-c_tip = 0.13 # Tip Chord Length (m) exp
-c_root = 0.29 # Root Chord Length (m) exp
-c_w = (((c_tip + c_root) / 2) + 0.223) / 2 # Wing Mean Aerodynamic Chord (m) exp derived averaged
-S = b * c_w # Wing Area (m^2) exp derived
-Ar = b**2 / S # exp derived
-lambda_ = 0 # Wing Quarter Chord Sweep (deg) exp
-z_w = 0 # Z-Coordinate of Quarter Chord (m) exp
-alpha_w_r_deg = (11.539 + 9.46) / 2 # Wing Rigging Angle (deg) exp averaged
+b = (3.01 + 2.96) / 2 # Wing Span (m) measured twice, averaged
+c_tip = 0.13 # Tip Chord Length (m) measured
+c_root = 0.29 # Root Chord Length (m) measured
+c_w = (((c_tip + c_root) / 2) + 0.223) / 2 # Wing Mean Aerodynamic Chord (m) measured twice, averaged
+S = b * c_w # Wing Area (m^2) derived from measurements
+Ar = b**2 / S # Wing Aspect Ratio derived from measurements
+lambda_ = 0 # Wing Quarter Chord Sweep (rad) measured to be negligible
+z_w = 0 # Z-Coordinate of Quarter Chord (m) 1/4 chord set to be z-datum
+alpha_w_r_deg = (11.539 + 9.46) / 2 # Wing Rigging Angle (deg) measured twice, averaged
 alpha_w_r = alpha_w_r_deg / 57.3 # Wing Rigging Angle (rad)
 
 # Tailplane Geometry
-s_T = (0.38 + (0.63 / 2)) / 2 # Tailplane Semi-Span (m) exp averaged
-tau_T_deg = 36.1 # Tailplane Dihedral (deg) exp
-c_MAC_T = 0.14 # Tailplane Mean Aerodynamic Chord (m) exp
-b_T = 2 * s_T * np.cos(np.radians(tau_T_deg)) # Tailplane Span (m) exp derived
-S_T = (0.11424 + (c_MAC_T * b_T)) / 2 # Tailplane Area (m^2) exp derived averaged
-Ar_T = (3.47 + (b_T**2 / S_T)) / 2 # Tailplane Aspect Ratio exp derived averaged
-l_t = 1.04 # Tail Arm, Quarter Chord Wing to Quarter Chord Tail (m) exp
+s_T = (0.38 + (0.63 / 2)) / 2 # Tailplane Semi-Span (m) measured averaged
+tau_T_deg = 36.1 # Tailplane Dihedral (deg) measured
+c_MAC_T = 0.14 # Tailplane Mean Aerodynamic Chord (m) measured
+b_T = 2 * s_T * np.cos(np.radians(tau_T_deg)) # Tailplane Span (m) measured derived
+S_T = (0.11424 + (c_MAC_T * b_T)) / 2 # Tailplane Area (m^2) measured derived averaged
+Ar_T = (3.47 + (b_T**2 / S_T)) / 2 # Tailplane Aspect Ratio derived from measurements twice, averaged
+l_t = 1.04 # Tail Arm, Quarter Chord Wing to Quarter Chord Tail (m) measured
 lambda_T_deg = 14.04 # Tailplane Sweep Angle (deg)
 lambda_T = lambda_T_deg / 57.3
-z_T = -0.35 # Quarter Chord Z-Coordinate (m) exp
-eta_T_deg = 9 # Tailplane Setting Angle (deg) exp ASSUMPTION / GUESS
+z_T = -0.35 # Quarter Chord Z-Coordinate (m) measured
+eta_T_deg = 9 # Tailplane Setting Angle (deg) measured
 eta_T = eta_T_deg / 57.3 # Tailplane Setting Angle (rad)
 
 # General Geometry
-F_d = 0.25 # Fuselage Diameter or Width (m) exp
-z_tau = -0.07 # Thrust Line Z-Coordinate (m) exp
-kappa_deg = 0 # Engine Thrust Line Angle (deg) exp
+F_d = 0.25 # Fuselage Diameter or Width (m) measured
+z_tau = -0.07 # Thrust Line Z-Coordinate (m) measured
+kappa_deg = 0 # Engine Thrust Line Angle (deg) measured
 kappa = kappa_deg / 57.3 # Engine Thrust Line Angle (rad)
 
 """
@@ -118,8 +113,8 @@ h_0 = 0.25 # Wing-Body Aero Centre 3rd year project
 6. Tailplane Aerodynamics
 """
 a1_numerator = 2 * np.pi * Ar_T
-beta = (1 - 0.07**2)**0.5 # Mach Number Parameter (M ASSUMPTION AS 0.07 (calculated))
-kappa_ratio = 1 # Ratio of 2D Lift Curve Slope to 2pi (ASSUMPTION to be perfect, i.e. 1)
+beta = (1 - 0.07**2)**0.5 # Mach Number Parameter (M calculated to be 0.07 for V_md)
+kappa_ratio = 1 # Ratio of 2D Lift Curve Slope to 2pi (assumed to be perfect, i.e. 1)
 term1 = (Ar_T * beta / kappa_ratio)**2
 term2 = np.tan(lambda_T)**2 / beta**2
 a1_denominator = 2 + np.sqrt(term1 * (1 + term2) + 4)
@@ -130,7 +125,7 @@ epsilon_0_deg = 2 # Zero Lift Downwash Angle (deg) aero notes
 epsilon_0 = epsilon_0_deg / 57.3 # Zero Lift Downwash Angle (rad)
 
 def do_trim(h):
-    gamma_e_deg = 0 # Flight Path Angle (deg) MIGHT CHANGE
+    gamma_e_deg = 0 # Flight Path Angle (deg)
     gamma_e = gamma_e_deg / 57.3 # Flight Path Angle (rad)
     
     h = h # CG Position from MAC leading edge (m)
@@ -224,7 +219,8 @@ def do_trim(h):
         C_L_i[i], C_LW_i[i], C_D_i[i], C_tau_i[i], alpha_e_i[i], C_LT_i[i] = solution
     
     alpha_w_i = alpha_e_i + alpha_w_r # Wing Incidence (rad)
-    eta_e_i = C_LT_i / a2 - a1 / a2 * (alpha_w_i * (1 - d_epsilon_alpha) + eta_T - alpha_w_r - epsilon_0) # Trim Elevator Angle (rad)
+    eta_e_i = C_LT_i / a2 - a1 / a2 * \
+        (alpha_w_i * (1 - d_epsilon_alpha) + eta_T - alpha_w_r - epsilon_0) # Trim Elevator Angle (rad)
     theta_e_i = gamma_e + alpha_w_i - alpha_w_r # Pitch Attitude (rad)
     alpha_T_i = alpha_w_i * (1 - d_epsilon_alpha) + eta_T - epsilon_0 - alpha_w_r # Tail Angle of Attack (rad)
     LD_i = C_LW_i/ C_D_i # Lift to Drag Ratio
