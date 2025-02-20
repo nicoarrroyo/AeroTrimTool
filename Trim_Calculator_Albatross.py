@@ -17,38 +17,32 @@ def output(results):
     for var, val, unit in results:
         print(f'| {var:>13} | {round(val, 3):>10} | {unit:>10} |')
 
-def make_vel_plot(x_list, y_list, xlabel, ylabel, title, save_image):
+def make_plot(x_list, y_list, xlabel, ylabel, title):
     plt.figure(figsize=(4,3))
     plt.title(title)
     plt.xlabel(xlabel)
     plt.ylabel(ylabel)
     for i in range(n_h):
-        if y_list[0][0] != K_n[0]:
-            plt.plot(x_list[i], y_list[i], linewidth=1.5, label=f'h={(h[i]):.2f}m')
-            plt.axvline(x=V_stall[0], color='r', label='V_Stall', linestyle='--', linewidth=0.8)
-            plt.axvline(x=V_max_knots[0], color='g', label='V_Max', linestyle='--', linewidth=0.8)
-            plt.axvline(x=V_md[0], color='b', label='Min Drag', linestyle='--', linewidth=0.8)
-        else:
-            plt.plot(x_list[i], y_list[i], linewidth=1.5, label=f'h={(h[i]):.2f}m')
-    
+        plt.plot(x_list[i], y_list[i], linewidth=1.5, label=f'h={(h[i]):.2f}m')
+    plt.axvline(x=V_stall[0], color='r', label='V_Stall', linestyle='--', linewidth=0.8)
+    plt.axvline(x=V_max_knots[0], color='g', label='V_Max', linestyle='--', linewidth=0.8)
+    plt.axvline(x=V_md[0], color='b', label='Min Drag', linestyle='--', linewidth=0.8)
     if y_list[0][0] == eta_e_i[0][0]:
         plt.axhline(y=-15, color='k', label='Min Deflection', linestyle='--', linewidth=0.8)
         plt.axhline(y=15, color='k', label='Max Deflection', linestyle='--', linewidth=0.8)
     plt.grid()
     plt.legend(fontsize='5')
     
-    if save_images:
-        if y_list[0][0] == K_n[0][0]:
-            plot_name = f'X{xlabel}_Y{ylabel}.png'
-            # check for file name already existing and increment file name
-            base_name, extension = os.path.splitext(plot_name)
-            counter = 1
-            os.chdir('C:\\Users\\nicol\\Documents\\UoM\\YEAR 3\\TERM 2\\Flight Dynamics\\CW1\\Figures')
-            while os.path.exists(plot_name):
-                plot_name = f'{base_name}_{counter}{extension}'
-                counter += 1
-            plt.savefig(plot_name, dpi=1000, bbox_inches='tight')
-    
+def save_plot(plot_name, save_image):
+    if save_image:
+        # check for file name already existing and increment file name
+        base_name, extension = os.path.splitext(plot_name)
+        counter = 1
+        os.chdir('C:\\Users\\nicol\\Documents\\UoM\\YEAR 3\\TERM 2\\Flight Dynamics\\CW1\\Figures')
+        while os.path.exists(plot_name):
+            plot_name = f'{base_name}_{counter}{extension}'
+            counter += 1
+        plt.savefig(plot_name, dpi=1000, bbox_inches='tight')
     plt.show()
 
 print_checks = False
@@ -85,8 +79,7 @@ c_root = 0.29 # Root Chord Length (m) exp
 c_w = (((c_tip + c_root) / 2) + 0.223) / 2 # Wing Mean Aerodynamic Chord (m) exp derived averaged
 S = b * c_w # Wing Area (m^2) exp derived
 Ar = b**2 / S # exp derived
-lambda_deg = 0 # Wing Quarter Chord Sweep (deg) exp
-lambda_ = lambda_deg / 57.3 # Wing Quarter Chord Sweep (rad) exp
+lambda_ = 0 # Wing Quarter Chord Sweep (deg) exp
 z_w = 0 # Z-Coordinate of Quarter Chord (m) exp
 alpha_w_r_deg = (11.539 + 9.46) / 2 # Wing Rigging Angle (deg) exp averaged
 alpha_w_r = alpha_w_r_deg / 57.3 # Wing Rigging Angle (rad)
@@ -261,46 +254,8 @@ def do_trim(h):
         T_i.append(0.5 * rho * vel**2 * S * C_tau_i[i]) # Total Lift Force (N)
     
     """
-    15. Definition of Flight Condition
+    Final Results Output
     """
-    if print_checks:
-        results_flight_condition = [
-            ('h_n', h_n, '-'), 
-            ('K_n', K_n, '-'), 
-            ('mg', m*g, 'N'), 
-            ('ht_ft', ht_ft, 'ft'), 
-            ('gamma_e', gamma_e, 'deg'),
-            ('h', h, '% of chord'), 
-            ('V_md', V_md, 'knots'), 
-            ('V_stall', V_stall, 'knots'), 
-        ]
-        print('==Definition=of=Flight=Condition===========')
-        output(results_flight_condition)
-    
-    """
-    16. Trim Conditions as a Function of Aircraft Velocity
-    """
-    if print_checks:
-        results_trim_conditions = [
-            ('V_i', V_i[14], 'knots'), 
-            ('C_L_i', C_L_i[14], '-'), 
-            ('C_D_i', C_D_i[14], '-'),
-            ('C_LW_i', C_LW_i[14], '-'), 
-            ('C_LT_i', C_LT_i[14], '-'), 
-            ('LD_i', LD_i[14], '-'), 
-            ('C_tau_i', C_tau_i[14], '-'), 
-            ('alpha_w_i', alpha_w_i[14], 'deg'), 
-            ('alpha_e_i', alpha_e_i[14], 'deg'), 
-            ('theta_e_i', theta_e_i[14], 'deg'), 
-            ('alpha_T_i', alpha_T_i[14], 'deg'), 
-            ('eta_e_i', eta_e_i[14], 'deg'), 
-            ('L_i', L_i[14], 'N'), 
-            ('D_i', D_i[14], 'N'), 
-            ('T_i', T_i[14], 'N')
-        ]
-        print('==Trim=Conditions==Demo=Values=============')
-        output(results_trim_conditions)
-    
     results = [
         V_knots, LD_i, V_stall, V_max_knots, V_md, 
         eta_e_i, D_i, K_n
@@ -334,19 +289,27 @@ for i, h_current in enumerate(h):
 """
 17. Some Useful Trim Plots
 """
-save_images = False
+save_images = True
 plt.rcParams.update({'font.size': 8})
-make_vel_plot(x_list=V_knots, y_list=LD_i, xlabel='Velocity (knots)', ylabel='Lift to Drag Ratio (-)', 
-              title='Lift to Drag Ratio vs True Air Speed', save_image=save_images)
+make_plot(x_list=V_knots, y_list=LD_i, xlabel='Velocity (knots)', 
+          ylabel='L / D', title='Lift to Drag Ratio vs True Air Speed')
+save_plot(plot_name='LD_VS_TAS.png', save_image=save_images)
 
-make_vel_plot(x_list=V_knots, y_list=eta_e_i, xlabel='Velocity (knots)', ylabel='Elevator Angle (deg)', 
-              title='Elevator Angle vs True Air Speed', save_image=save_images)
+make_plot(x_list=V_knots, y_list=eta_e_i, xlabel='Velocity (knots)', 
+          ylabel='Elevator Angle (deg)', title='Elevator Angle vs True Air Speed')
+save_plot(plot_name='Elevator_VS_TAS.png', save_image=save_images)
 
-make_vel_plot(x_list=V_knots, y_list=D_i, xlabel='Velocity (knots)', ylabel='Total Drag (N)', 
-              title='Total Drag vs True Air Speed', save_image=save_images)
+make_plot(x_list=V_knots, y_list=D_i, xlabel='Velocity (knots)', 
+          ylabel='Total Drag (N)', title='Total Drag vs True Air Speed')
+save_plot(plot_name='Drag_VS_TAS.png', save_image=save_images)
 
-make_vel_plot(x_list=h, y_list=K_n, xlabel='Static Margin (m)', ylabel='CG Position', 
-              title='Static Margin vs CG Position', save_image=save_images)
+plt.figure(figsize=(4,3))
+plt.title('Static Margin vs CG Position')
+plt.xlabel('CG Position (m)')
+plt.ylabel('Static Margin (m)')
+plt.plot(h, K_n, linewidth=1.5, marker='<')
+plt.grid()
+save_plot(plot_name='CG_VS_Kn.png', save_image=save_images)
 
 """
 References
