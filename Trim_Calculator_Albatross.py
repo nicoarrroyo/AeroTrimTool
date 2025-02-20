@@ -45,8 +45,6 @@ def save_plot(plot_name, save_image):
         plt.savefig(plot_name, dpi=1000, bbox_inches='tight')
     plt.show()
 
-print_checks = False
-
 """
 1. Aircraft Flight Condition
 """
