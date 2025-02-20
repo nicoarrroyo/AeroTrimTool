@@ -27,6 +27,7 @@ def make_plot(x_list, y_list, xlabel, ylabel, title):
     plt.axvline(x=V_stall[0], color='r', label='V_Stall', linestyle='--', linewidth=0.8)
     plt.axvline(x=V_max_knots[0], color='g', label='V_Max', linestyle='--', linewidth=0.8)
     plt.axvline(x=V_md[0], color='b', label='Min Drag', linestyle='--', linewidth=0.8)
+    plt.axvline(x=1.2*V_stall[0], color='k', label='V_min', linestyle='--', linewidth=0.8)
     if y_list[0][0] == eta_e_i[0][0]:
         plt.axhline(y=-15, color='k', label='Min Deflection', linestyle='--', linewidth=0.8)
         plt.axhline(y=15, color='k', label='Max Deflection', linestyle='--', linewidth=0.8)
@@ -287,7 +288,7 @@ for i, h_current in enumerate(h):
 """
 17. Some Useful Trim Plots
 """
-save_images = True
+save_images = False
 plt.rcParams.update({'font.size': 8})
 make_plot(x_list=V_knots, y_list=LD_i, xlabel='Velocity (knots)', 
           ylabel='L / D', title='Lift to Drag Ratio vs True Air Speed')
